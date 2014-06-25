@@ -1,2 +1,5 @@
 test/test_x11_util
 test/test_terminal
+test/crypto_util_test
+test/crypto_util_test_camellia
+

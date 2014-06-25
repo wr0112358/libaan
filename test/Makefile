@@ -3,13 +3,20 @@ include ../Makefile.in
 PROJECT_NAME=wr011_lib
 INSTALL_DIR=/opt/usr/install/$(PROJECT_NAME)
 
-test: test_terminal test_x11_util
+test: test_x11_util crypto_util_test crypto_util_test_camellia #test_terminal
 
 test_x11_util: test_x11_util.cc
-	$(CXX) $(CXX_FLAGS) -Wall test_x11_util.cc -lX11 -o test_x11_util
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lX11 -o test_x11_util
 
 test_terminal: test_terminal.cc
-	$(CXX) $(CXX_FLAGS) test_terminal.cc -o test_terminal
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@
+
+crypto_util_test: crypto_util_test.cc
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
+crypto_util_test_camellia: crypto_util_test_camellia.cc
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
+crypto_util_test_lion: crypto_util_test_lion.cc
+	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
 
 clean:
 	rm -f test_terminal test_x11_util

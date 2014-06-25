@@ -1,5 +1,4 @@
-PROJECT_NAME=libaan
-INSTALL_DIR=/opt/usr/include/$(PROJECT_NAME)
+include Makefile.in
 
 install:
 	rm -rf $(INSTALL_DIR)

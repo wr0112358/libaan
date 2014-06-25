@@ -107,18 +107,19 @@ inline size_t libaan::util::file::dir::dirent_buf_size(DIR *dirp)
     long name_max;
 #if defined(HAVE_FPATHCONF) && defined(HAVE_DIRFD) && defined(_PC_NAME_MAX)
     name_max = fpathconf(dirfd(dirp), _PC_NAME_MAX);
-    if (name_max == -1)
-#if defined(NAME_MAX)
+    if(name_max == -1)
+    #if defined(NAME_MAX)
         name_max = NAME_MAX;
-#else
+    #else
         return (size_t)(-1);
-#endif
+    #endif
 #else
-#if defined(NAME_MAX)
+        static_cast<void>(dirp);
+    #if defined(NAME_MAX)
     name_max = NAME_MAX;
-#else
-#error "buffer size for readdir_r cannot be determined"
-#endif
+    #else
+    #error "buffer size for readdir_r cannot be determined"
+    #endif
 #endif
     return (size_t)offsetof(struct dirent, d_name) + name_max + 1;
 }

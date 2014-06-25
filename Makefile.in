@@ -1,0 +1,2 @@
+CXX = clang++
+CXX_FLAGS += -g -Werror -Wall -Wextra -Wpedantic -Wshadow -Wpointer-arith -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wno-long-long -Wwrite-strings -Wcast-qual -Wconversion -pedantic-errors -m64 -std=c++11

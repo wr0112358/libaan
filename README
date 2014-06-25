@@ -1,0 +1,23 @@
+libaan - A library for all and none
+  Where all is pointed more at the usecases than at the users
+
+What
+  Code snippets I needed more than once.
+  Small c++11 wrappers for low level system functionality.
+  Only headers(yet).
+  Some unit tests. There should be more.
+  Serves mostly as reminder of some c++ techniques, but is also used as include
+  library in some of my applications.
+
+Outline
+  Global namespace libaan for all introduced types and functions.
+  Additional namespaces to encapsulate functionality better, e.g. x11, file.
+
+Use
+  Include repository as git submodule and directly reference .hh files.
+
+Missing
+  tests
+  unused/duplicated code should be removed or refactored.
+  replace namespace util with module namespace..
+  .cc files

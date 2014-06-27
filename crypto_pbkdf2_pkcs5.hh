@@ -16,6 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
+// TODO: sha1 must be replaced
+
 #ifndef _LIBAAN_CRYPTO_PBKDF2_PKCS5_HH_
 #define _LIBAAN_CRYPTO_PBKDF2_PKCS5_HH_
 

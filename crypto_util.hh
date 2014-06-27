@@ -24,9 +24,12 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <unistd.h>
 #include <string>
 
-namespace libaan {
-namespace crypto {
-namespace util {
+namespace libaan
+{
+namespace crypto
+{
+namespace util
+{
 /* Usage:
     const password_from_stdin pw2(6);
     std::cout << "password_from_stdin: ";
@@ -45,8 +48,7 @@ namespace util {
 */
 struct password_from_stdin
 {
-    password_from_stdin(size_t pw_minlength = 1)
-        : state(false), password("");
+    password_from_stdin(size_t pw_minlength = 1) : state(false), password("");
     {
         state = false;
         // points to static pw buffer after reading the input.

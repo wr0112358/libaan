@@ -1,4 +1,6 @@
 include Makefile.in
+all:
+	@echo "No target specified."
 
 install:
 	rm -rf $(INSTALL_DIR)

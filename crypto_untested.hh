@@ -23,38 +23,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include "crypto_camellia.hh"
 
 #include <fstream>
-#include <openssl/rc4.h>
-#include <openssl/sha.h>
 
 namespace libaan {
 namespace crypto {
-// Lion block cipher combines a stream cipher and a cryptographic hash function.
-// "LION, which is a construction that takes a stream cipher and hash function
-// and turns them into a block cipher that has an arbitrary block size.
-// Essentially, LION turns those constructs into a single block cipher that has
-// a variable block length, and you use the cipher in ECB mode."
-
-// -> Advantage for file encryption is: no nonces/IVs for every 8192 byte
-//    chunk needed.
-// Uses the stream cipher twice with independent keys and the cryptographic hash
-// once.// RC4 stream cipher: 128bit/16byte key
-// Alternatives for file encryption are:
-// - block cipher in CBC mode with random IV per block(8192)
-namespace lion {
-
-// Secure Programming Cookbook for C and C++: 5.15
-const int HASH_SIZE = SHA_DIGEST_LENGTH;
-const int HASH_WORDS = (HASH_SIZE / sizeof(int));
-//const size_t CHUNK_SIZE = 8192;
-
-bool check_file_size(size_t file_size);
-// Input file must be longer than the output size of the message digest function(20 bytes for SHA1).
-void encrypt(const unsigned char *input_buffer, unsigned char *output_buffer,
-             size_t block_length, const unsigned char *key);
-void decrypt(const unsigned char *input_buffer, unsigned char *output_buffer,
-             size_t block_length, const unsigned char *key);
-}
-
 namespace file_encryption {
 
 const size_t HEADER_SIZE = 64;
@@ -71,9 +42,10 @@ public:
         CIPHER_ERROR_FILE_LENGTH,
         INTERNAL_CIPHER_ERROR,
     };
+
 /*
 - memset(0) before/after use
-- mlock auf decrypted string buffer?
+- mlock on decrypted string buffer?
 */
 public:
     crypto_file(const std::string &file_name /*, cipher_type type*/)
@@ -99,18 +71,14 @@ public:
     void set_dirty() { dirty = true; }
     bool is_dirty() const { return dirty; }
 
-    error_type get_last_error() { return last_error; } const
+    error_type get_last_error() const { return last_error; } 
     static std::string error_string(error_type err)
     {
         switch(err) {
-        case NO_ERROR:
-            return "NO_ERROR";
-        case NO_HEADER_IN_FILE:
-            return "NO_HEADER_IN_FILE";
-        case CIPHER_ERROR_FILE_LENGTH:
-            return "CIPHER_ERROR_FILE_LENGTH";
-        case INTERNAL_CIPHER_ERROR:
-            return "INTERNAL_CIPHER_ERROR";
+        case NO_ERROR: return "NO_ERROR";
+        case NO_HEADER_IN_FILE: return "NO_HEADER_IN_FILE";
+        case CIPHER_ERROR_FILE_LENGTH: return "CIPHER_ERROR_FILE_LENGTH";
+        case INTERNAL_CIPHER_ERROR: return "INTERNAL_CIPHER_ERROR";
         }
     }
 
@@ -118,75 +86,10 @@ private:
     error_type error(error_type e) { last_error = e; return last_error; }
 
     // parse file_header, fill iv/salt
-    bool parse_header()
-    {
-        size_t off = 0;
-        std::string magic_tmp = file_header.substr(off, MAGIC.length());
-        if(magic_tmp != MAGIC) {
-            std::cout << "parse_header ERROR: magic number wrong.\n";
-            return false;
-        }
-        off += MAGIC.length();
-
-        std::string version_0010_tmp = file_header.substr(off, VERSION_0010.length());
-        if(version_0010_tmp != VERSION_0010) {
-            std::cout << "parse_header ERROR: version_0010 number wrong.\n";
-            return false;
-        }
-        off += VERSION_0010.length();
-
-        salt = file_header.substr(off, libaan::crypto::camellia::camellia_256::SALT_SIZE);
-        off += libaan::crypto::camellia::camellia_256::BLOCK_SIZE;
-
-        iv = file_header.substr(off, libaan::crypto::camellia::camellia_256::BLOCK_SIZE);
-
-        return true;
-    }
+    bool parse_header();
 
     // create file_header buffer from salt/iv etc
-    void build_header_from_buffers()
-    {
-        //std::cout << "build_header_from_buffers() 1: length = " << file_header.length() << "\n";
-        // TODO
-        file_header.resize(HEADER_SIZE);
-        //std::cout << "build_header_from_buffers() 2: length = " << file_header.length() << "\n";
-        std::fill(file_header.begin(), file_header.end(), 0);
-        //std::cout << "build_header_from_buffers() 3: length = " << file_header.length() << "\n";
-        // const std::string tmp("128");
-        size_t off = 0;
-        // file_header.replace(file_header.begin() + off, tmp.begin(), tmp.end());
-        // off += tmp.length();
-        file_header.replace(file_header.begin() + off,
-                            file_header.begin() + off + MAGIC.length(), MAGIC);
-        //std::cout << "build_header_from_buffers() 4: length = " << file_header.length()
-        //          << " off = " << off << "\n";
-        off += MAGIC.length();
-
-        file_header.replace(file_header.begin() + off,
-                            file_header.begin() + off + VERSION_0010.length(),
-                            VERSION_0010);
-        //std::cout << "build_header_from_buffers() 5: length = " << file_header.length()
-        //          << " off = " << off << "\n";
-        off += VERSION_0010.length();
-
-        std::string salt_tmp(libaan::crypto::camellia::camellia_256::SALT_SIZE, 0);
-        salt_tmp.replace(salt_tmp.begin(), salt_tmp.end(), salt);
-        file_header.replace(file_header.begin() + off,
-                            file_header.begin() + off + salt_tmp.length(),
-                            salt_tmp);
-        //std::cout << "build_header_from_buffers() 6: length = " << file_header.length()
-        //          << " off = " << off << "\n";
-        off += salt_tmp.length();
-
-        std::string iv_tmp(libaan::crypto::camellia::camellia_256::BLOCK_SIZE, 0);
-        iv_tmp.replace(iv_tmp.begin(), iv_tmp.end(), iv);
-        //std::cout << "build_header_from_buffers() 7: length = " << file_header.length()
-        //          << " off = " << off << "\n";
-        file_header.replace(file_header.begin() + off,
-                            file_header.begin() + off + iv_tmp.length(),
-                            iv_tmp);
-        //std::cout << "build_header_from_buffers() 8: length = " << file_header.length() << "\n";
-    }
+    void build_header_from_buffers();
 
 private:
     // filesize including header
@@ -209,67 +112,87 @@ private:
 
 // Implementation
 
-inline bool libaan::crypto::lion::check_file_size(size_t file_size)
+#include "crypto_camellia.hh"
+
+inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
 {
-//    if(file_size % CHUNK_SIZE)
-//        return false;
-    if(file_size < HASH_SIZE)
+    size_t off = 0;
+    std::string magic_tmp = file_header.substr(off, MAGIC.length());
+    if(magic_tmp != MAGIC) {
+        std::cout << "parse_header ERROR: magic number wrong.\n";
         return false;
+    }
+    off += MAGIC.length();
+
+    std::string version_0010_tmp
+        = file_header.substr(off, VERSION_0010.length());
+    if(version_0010_tmp != VERSION_0010) {
+        std::cout << "parse_header ERROR: version_0010 number wrong.\n";
+        return false;
+    }
+    off += VERSION_0010.length();
+
+    salt = file_header.substr(
+        off, libaan::crypto::camellia::camellia_256::SALT_SIZE);
+    off += libaan::crypto::camellia::camellia_256::BLOCK_SIZE;
+
+    iv = file_header.substr(off,
+                            libaan::crypto::camellia::camellia_256::BLOCK_SIZE);
+
     return true;
 }
 
-inline void libaan::crypto::lion::encrypt(const unsigned char *input_buffer,
-                 unsigned char *output_buffer, size_t block_length, const unsigned char *key)
+inline void
+libaan::crypto::file_encryption::crypto_file::build_header_from_buffers()
 {
-    int tmp[HASH_WORDS];
-    RC4_KEY k;
-    const unsigned char *key_data = reinterpret_cast<const unsigned char *>(&tmp[0]);
+    // std::cout << "build_header_from_buffers() 1: length = " <<
+    // file_header.length() << "\n";
+    // TODO
+    file_header.resize(HEADER_SIZE);
+    // std::cout << "build_header_from_buffers() 2: length = " <<
+    // file_header.length() << "\n";
+    std::fill(file_header.begin(), file_header.end(), 0);
+    // std::cout << "build_header_from_buffers() 3: length = " <<
+    // file_header.length() << "\n";
+    // const std::string tmp("128");
+    size_t off = 0;
+    // file_header.replace(file_header.begin() + off, tmp.begin(), tmp.end());
+    // off += tmp.length();
+    file_header.replace(file_header.begin() + off,
+                        file_header.begin() + off + MAGIC.length(), MAGIC);
+    // std::cout << "build_header_from_buffers() 4: length = " <<
+    // file_header.length()
+    //          << " off = " << off << "\n";
+    off += MAGIC.length();
 
-    /* Round 1: R = R ^ RC4(L ^ K1) */
-    for (int i = 0; i < HASH_WORDS; i++)
-        tmp[i] = ((int *)input_buffer)[i] ^ ((int *)key)[i];
-    RC4_set_key(&k, HASH_SIZE, key_data);
-    RC4(&k, block_length - HASH_SIZE, input_buffer + HASH_SIZE,
-        output_buffer + HASH_SIZE);
+    file_header.replace(file_header.begin() + off,
+                        file_header.begin() + off + VERSION_0010.length(),
+                        VERSION_0010);
+    // std::cout << "build_header_from_buffers() 5: length = " <<
+    // file_header.length()
+    //          << " off = " << off << "\n";
+    off += VERSION_0010.length();
 
-    /* Round 2: L = L ^ SHA1(R) */
-    SHA1(output_buffer + HASH_SIZE, block_length - HASH_SIZE, output_buffer);
-    for (int i = 0; i < HASH_WORDS; i++)
-        ((int *)output_buffer)[i] ^= ((int *)input_buffer)[i];
+    std::string salt_tmp(libaan::crypto::camellia::camellia_256::SALT_SIZE, 0);
+    salt_tmp.replace(salt_tmp.begin(), salt_tmp.end(), salt);
+    file_header.replace(file_header.begin() + off,
+                        file_header.begin() + off + salt_tmp.length(),
+                        salt_tmp);
+    // std::cout << "build_header_from_buffers() 6: length = " <<
+    // file_header.length()
+    //          << " off = " << off << "\n";
+    off += salt_tmp.length();
 
-    /* Round 3: R = R ^ RC4(L ^ K2) */
-    for (int i = 0; i < HASH_WORDS; i++)
-        tmp[i] = ((int *)output_buffer)[i] ^ ((int *)key)[i + HASH_WORDS];
-    RC4_set_key(&k, HASH_SIZE, key_data);
-    RC4(&k, block_length - HASH_SIZE, output_buffer + HASH_SIZE,
-        output_buffer + HASH_SIZE);
+    std::string iv_tmp(libaan::crypto::camellia::camellia_256::BLOCK_SIZE, 0);
+    iv_tmp.replace(iv_tmp.begin(), iv_tmp.end(), iv);
+    // std::cout << "build_header_from_buffers() 7: length = " <<
+    // file_header.length()
+    //          << " off = " << off << "\n";
+    file_header.replace(file_header.begin() + off,
+                        file_header.begin() + off + iv_tmp.length(), iv_tmp);
+    // std::cout << "build_header_from_buffers() 8: length = " <<
+    // file_header.length() << "\n";
 }
-
-inline void libaan::crypto::lion::decrypt(const unsigned char *input_buffer,
-                 unsigned char *output_buffer, size_t block_length, const unsigned char *key)
-{
-    int tmp[HASH_WORDS];
-    RC4_KEY k;
-    const unsigned char *key_data = reinterpret_cast<const unsigned char *>(&tmp[0]);
-
-    for (int i = 0; i < HASH_WORDS; i++)
-        tmp[i] = ((int *)input_buffer)[i] ^ ((int *)key)[i + HASH_WORDS];
-    RC4_set_key(&k, HASH_SIZE, key_data);
-    RC4(&k, block_length - HASH_SIZE, input_buffer + HASH_SIZE,
-        output_buffer + HASH_SIZE);
-    SHA1(output_buffer + HASH_SIZE, block_length - HASH_SIZE, output_buffer);
-
-    for (int i = 0; i < HASH_WORDS; i++) {
-        ((int *)output_buffer)[i] ^= ((int *)input_buffer)[i];
-        tmp[i] = ((int *)output_buffer)[i] ^ ((int *)key)[i];
-    }
-    RC4_set_key(&k, HASH_SIZE, key_data);
-    RC4(&k, block_length - HASH_SIZE, output_buffer + HASH_SIZE,
-        output_buffer + HASH_SIZE);
-}
-
-
-#include "crypto_camellia.hh"
 
 inline libaan::crypto::file_encryption::crypto_file::error_type
 libaan::crypto::file_encryption::crypto_file::read(
@@ -335,7 +258,8 @@ libaan::crypto::file_encryption::crypto_file::read(
             std::cout << "crypto_file::read -> cipher.decrypt() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
-        std::cout << "222("<<decrypted_buffer.length()<<"): \"" << decrypted_buffer << "\"\n";
+        std::cout << "222(" << decrypted_buffer.length() << "): \""
+                  << decrypted_buffer << "\"\n";
     }
 
     // at this point file_header and decrypted_buffer are filled
@@ -369,11 +293,11 @@ libaan::crypto::file_encryption::crypto_file::write(
     fp.close();
     dirty = false;
 
-    std::cout <<std::dec << "crypto_file::write ->\n"
+    std::cout << std::dec << "crypto_file::write ->\n"
               << "\tencrypted_file_length = " << encrypted_file.length()
-              << "\n\ttotal_file_length = " << encrypted_file.length() + file_header.length()
-              << "\n\tHEADER_SIZE = " << file_header.length()
-              << "\n";
+              << "\n\ttotal_file_length = "
+              << encrypted_file.length() + file_header.length()
+              << "\n\tHEADER_SIZE = " << file_header.length() << "\n";
 
     return error(NO_ERROR);
 }

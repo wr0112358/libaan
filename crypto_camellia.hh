@@ -16,13 +16,12 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef _WR011_LIB_CRYPTO_UTIL_CAMELLIA_HH_
-#define _WR011_LIB_CRYPTO_UTIL_CAMELLIA_HH_
+#ifndef _LIBAAN_CRYPTO_UTIL_CAMELLIA_HH_
+#define _LIBAAN_CRYPTO_UTIL_CAMELLIA_HH_
 
 #include "crypto_pbkdf2_pkcs5.hh"
 
 #include <openssl/evp.h>
-
 
 namespace libaan {
 namespace crypto {

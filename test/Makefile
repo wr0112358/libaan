@@ -1,8 +1,5 @@
 include ../Makefile.in
 
-PROJECT_NAME=wr011_lib
-INSTALL_DIR=/opt/usr/install/$(PROJECT_NAME)
-
 test: test_x11_util crypto_util_test crypto_util_test_camellia #test_terminal
 
 test_x11_util: test_x11_util.cc

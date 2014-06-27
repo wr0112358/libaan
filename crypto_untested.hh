@@ -19,7 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef _LIBAAN_CRYPTO_UNTESTED_HH_
 #define _LIBAAN_CRYPTO_UNTESTED_HH_
 
-#include "wr011_lib/file_util.hh"
+#include "file_util.hh"
 #include "crypto_camellia.hh"
 
 #include <fstream>
@@ -287,7 +287,7 @@ libaan::crypto::file_encryption::crypto_file::read(
 
     libaan::crypto::camellia::camellia_256 cipher;
     std::ifstream fp(filename);
-    total_file_length = wr011_lib::file_util::get_file_length(fp);
+    total_file_length = util::file::get_file_length(fp);
 
     std::cout << "total_file_length = " << total_file_length << "\n";
     if (total_file_length < HEADER_SIZE) {

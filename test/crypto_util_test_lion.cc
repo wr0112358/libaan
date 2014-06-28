@@ -1,6 +1,6 @@
 // test/crypto_util_test_lion password test/test_file test/test_file.crypt
 #include "libaan/crypto_pbkdf2_pkcs5.hh"
-#include "libaan/crypto_untested.hh"
+#include "libaan/crypto_lion.hh"
 #include "libaan/file_util.hh"
 
 #include <iomanip>
@@ -44,14 +44,15 @@ bool get_key(const std::string & pw, std::string & key)
     return true; 
 }
 
-void print_usage(int argc, char *argv[])
+void print_usage(char *argv[])
 {
-    std::cout << "USAGE:\n" << std::string(argv[0]) << " password file_to_encrypt destination_file\n";
+    std::cout << "USAGE:\n" << std::string(argv[0])
+              << " password file_to_encrypt destination_file\n";
 }
 
 int main(int argc, char *argv[])
 {
-    print_usage(argc, argv);
+    print_usage(argv);
     if(argc != 4)
         exit(EXIT_FAILURE);
 

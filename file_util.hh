@@ -35,24 +35,33 @@ bool write_file(const char *file_name, const std::string &buff);
 
 class dir {
 public:
-  /* EXAMPLE:
-  void procfs::parser::parse(procfs & p) const
-  {
-      auto const f = [](const std::string & base_path, const struct dirent * p)
-  {
-          std::cout << "struct dirent = { " << std::endl
-          << "\t" << std::to_string(p->d_ino) << std::endl
-          << "\t" << std::to_string(p->d_off) << std::endl
-          << "\t" << std::to_string(p->d_reclen) << std::endl
-          << "\t\"" << p->d_name << "\"" << std::endl
-          << "}" << std::endl;
-      };
 
-      using libaan::util::file;
-      dir::readdir("/proc", f);
-  }
-  */
-  static void
+// Opening files after a readir_r should happen in inode order to avoid cache
+// misses:
+// http://marc.info/?l=mutt-dev&m=107226330912347&w=2
+// e2fsprogs/contrib/spd_readdir.c
+// this sounds like scandir(3) does exactly the same
+
+// TODO:
+// return all directory entries in inode order:
+// bool get_all_entries(const std::string &path, files_data_structure)
+//
+// return all directory entries sorted alphabetically:
+// bool get_all_entries_sorted(const std::string &path, files_data_structure)
+
+/* EXAMPLE:
+    auto const f = [](const std::string &base_path, const struct dirent *p) {
+        std::cout << "dirent = {"
+                  << "\n\t" << std::to_string(p->d_ino)
+                  << "\n\t" << std::to_string(p->d_off)
+                  << "\n\t" << std::to_string(p->d_reclen)
+                  << "\n\t\"" << p->d_name
+                  << "\"\n}\n";
+    };
+    libaan::util::file::dir::readdir("/proc", f);
+*/
+
+  static std::error_code
   readdir(const std::string &path,
           const std::function<void(const std::string &, dirent *)> &f);
 
@@ -73,6 +82,9 @@ inline size_t libaan::util::file::get_file_length(std::ifstream & fp)
     return length;
 }
 
+// TODO: read_file for 0-length files eg procentries:
+//template<std::size_t buffer_size> bool read_file(const char *, std::string &)
+// TODO: read_file(const std::string &file_name, ...)
 inline bool libaan::util::file::read_file(const char *file_name,
                                           std::string &buff)
 {
@@ -124,45 +136,53 @@ inline size_t libaan::util::file::dir::dirent_buf_size(DIR *dirp)
     return (size_t)offsetof(struct dirent, d_name) + name_max + 1;
 }
 
-// TODO: possible to add template argument to lambda function?
-inline void libaan::util::file::dir::readdir(
+inline std::error_code libaan::util::file::dir::readdir(
     const std::string &path,
-    const std::function<void(const std::string &, dirent *)> &f)
+    const std::function<void(const std::string &, dirent *)> &callback)
 {
     DIR *dirp = opendir(path.c_str());
     if (!dirp)
-        return; // TODO
+        return std::system_error(errno, std::system_category()).code();
 
-    size_t size = dirent_buf_size(dirp);
-    if (size == static_cast<size_t>(-1)) {
-        // TODO
+    // calculate size for readdir
+    // TODO: cache this?
+    size_t size;
+    {
+        const auto errno_backup = errno;
+        size = dirent_buf_size(dirp);
+        if (size == static_cast<size_t>(-1)) {
+            if(errno_backup != errno)
+                return std::system_error(errno, std::system_category()).code();
+            // "If the system does not have a limit ... for the resource ..."
+            // TODO: other programs mostly "take a guess".. see link for
+            // dirent_buf_size(...)
+            return std::system_error(EINVAL, std::system_category()).code();
+        }
     }
 
+    // allocate buffer to correct size
+    // TODO: cache this?
     std::unique_ptr<uint8_t[]> tmp_buf(new uint8_t[size]);
     struct dirent *buf = reinterpret_cast<struct dirent *>(tmp_buf.get());
-    if (!buf) {
-        // TODO
-    }
 
-    int error;
-    struct dirent *ent = nullptr;
+    struct dirent *entry;
     do {
-        error = readdir_r(dirp, buf, &ent);
-        if(!ent)
+        const auto error = readdir_r(dirp, buf, &entry);
+
+        // Bad file descriptor
+        if(error)
+            return std::system_error(errno, std::system_category()).code();
+
+        // end of stream
+        if(!entry)
             break;
-        if(error) {
-            perror(std::string("readdir_r(" + std::string(ent->d_name)
-                               + ") non-fatal error").c_str());
-        }
-        // std::cout <<  << std::endl;
-        f(path, ent);
+
+        // entry valid
+        callback(path, entry);
     } while(true);
 
-    if(!ent && error) {
-        perror("readdir_r");
-        // TODO: eg
-        // readdir_r: Operation not permitted
-    }
+    // TODO: readdir_r: Operation not permitted
+    return std::system_error(0, std::system_category()).code();
 }
 
 #endif

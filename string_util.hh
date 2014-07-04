@@ -19,6 +19,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef _LIBAAN_STRING_UTIL_HH_
 #define _LIBAAN_STRING_UTIL_HH_
 
+#ifdef TOTAL_REGEX_OVERLOAD
+#include <regex>
+#endif
 #include <string>
 
 namespace libaan
@@ -76,6 +79,37 @@ split2(const std::string &input, const std::string &delim)
 
     return tokens;
 }
+
+#ifdef TOTAL_REGEX_OVERLOAD
+/* example usage:
+    const std::string path = "/proc/" + std::to_string(pid) + "/environ";
+    std::string file_buffer;
+    const auto size = read_file(path, file_buffer);
+    std::cout << "read " << size << "bytes from " << path << "\n";
+
+#ifdef TOTAL_REGEX_OVERLOAD
+    const auto tokens = split(file_buffer, std::regex(R"(('.'|'\\0'))"));
+#endif
+
+    for(const auto & token: tokens) {
+        const std::string PREFIX = "PWD=";
+        if(string_starts_with(token, PREFIX)) {
+            std::cout << "PWD-token = \"" << token << "\"\n";
+            return token.substr(PREFIX.length(), token.length());
+        }
+    }
+*/
+inline std::vector<std::string> split(const std::string &input,
+                                      const std::regex &regex)
+{
+    // passing -1 as the submatch index parameter performs splitting
+    std::sregex_token_iterator first{input.begin(), input.end(), regex, -1};
+    std::sregex_token_iterator last;
+    return {first, last};
+}
+#endif
+
+
 }
 }
 

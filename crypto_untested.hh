@@ -119,7 +119,7 @@ inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
     size_t off = 0;
     std::string magic_tmp = file_header.substr(off, MAGIC.length());
     if(magic_tmp != MAGIC) {
-        std::cout << "parse_header ERROR: magic number wrong.\n";
+        std::cerr << "parse_header ERROR: magic number wrong.\n";
         return false;
     }
     off += MAGIC.length();
@@ -127,7 +127,7 @@ inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
     std::string version_0010_tmp
         = file_header.substr(off, VERSION_0010.length());
     if(version_0010_tmp != VERSION_0010) {
-        std::cout << "parse_header ERROR: version_0010 number wrong.\n";
+        std::cerr << "parse_header ERROR: version_0010 number wrong.\n";
         return false;
     }
     off += VERSION_0010.length();
@@ -145,32 +145,16 @@ inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
 inline void
 libaan::crypto::file_encryption::crypto_file::build_header_from_buffers()
 {
-    // std::cout << "build_header_from_buffers() 1: length = " <<
-    // file_header.length() << "\n";
-    // TODO
     file_header.resize(HEADER_SIZE);
-    // std::cout << "build_header_from_buffers() 2: length = " <<
-    // file_header.length() << "\n";
     std::fill(file_header.begin(), file_header.end(), 0);
-    // std::cout << "build_header_from_buffers() 3: length = " <<
-    // file_header.length() << "\n";
-    // const std::string tmp("128");
     size_t off = 0;
-    // file_header.replace(file_header.begin() + off, tmp.begin(), tmp.end());
-    // off += tmp.length();
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + MAGIC.length(), MAGIC);
-    // std::cout << "build_header_from_buffers() 4: length = " <<
-    // file_header.length()
-    //          << " off = " << off << "\n";
     off += MAGIC.length();
 
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + VERSION_0010.length(),
                         VERSION_0010);
-    // std::cout << "build_header_from_buffers() 5: length = " <<
-    // file_header.length()
-    //          << " off = " << off << "\n";
     off += VERSION_0010.length();
 
     std::string salt_tmp(libaan::crypto::camellia::camellia_256::SALT_SIZE, 0);
@@ -178,20 +162,12 @@ libaan::crypto::file_encryption::crypto_file::build_header_from_buffers()
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + salt_tmp.length(),
                         salt_tmp);
-    // std::cout << "build_header_from_buffers() 6: length = " <<
-    // file_header.length()
-    //          << " off = " << off << "\n";
     off += salt_tmp.length();
 
     std::string iv_tmp(libaan::crypto::camellia::camellia_256::BLOCK_SIZE, 0);
     iv_tmp.replace(iv_tmp.begin(), iv_tmp.end(), iv);
-    // std::cout << "build_header_from_buffers() 7: length = " <<
-    // file_header.length()
-    //          << " off = " << off << "\n";
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + iv_tmp.length(), iv_tmp);
-    // std::cout << "build_header_from_buffers() 8: length = " <<
-    // file_header.length() << "\n";
 }
 
 inline libaan::crypto::file_encryption::crypto_file::error_type
@@ -212,10 +188,8 @@ libaan::crypto::file_encryption::crypto_file::read(
     std::ifstream fp(filename);
     total_file_length = util::file::get_file_length(fp);
 
-    std::cout << "total_file_length = " << total_file_length << "\n";
     if (total_file_length < HEADER_SIZE) {
         // case A: No header/empty file. Create new header.
-        std::cout << "crypto_file::read -> A\n";
         if(!cipher.init()) {
             std::cout << "cipher.init() failed\n";
             return INTERNAL_CIPHER_ERROR;
@@ -226,40 +200,36 @@ libaan::crypto::file_encryption::crypto_file::read(
         // Clearing dst-file not necessary, since dirty flag is set.
     } else {
         // case B: File contains something. Read header and encrypted contents in buffers.
-        std::cout << "crypto_file::read -> B\n";
         file_header.resize(HEADER_SIZE);
         char *begin = &*file_header.begin();
         // read header
         fp.read(begin, HEADER_SIZE);
         if(!parse_header()) {
-            std::cout << "Parsing header failed.\n";
+            std::cerr << "Parsing header failed.\n";
             return NO_HEADER_IN_FILE;
         }
         const size_t encrypted_file_length = total_file_length - HEADER_SIZE;
         if(!encrypted_file_length)
-            std::cout << "crypto_file::read -> header exists, file empty\n";
+            std::cerr << "crypto_file::read -> header exists, file empty\n";
         encrypted_file.resize(encrypted_file_length);
         begin = &*encrypted_file.begin();
         // read encrypted contents
         fp.read(begin, encrypted_file_length);
         if(!cipher.init(salt, iv)) {
-            std::cout << "crypto_file::read -> cipher.init() failed.\n";
+            std::cerr << "crypto_file::read -> cipher.init() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
         decrypted_buffer.resize(encrypted_file_length);
-        std::cout << "111("<<decrypted_buffer.length()<<"): \"" << decrypted_buffer << "\"\n";
 
-        std::cout << std::dec
+        std::cerr << std::dec
                   << "crypto_file::read ->\n"
                   << "\tencrypted_file_length = " << encrypted_file_length
                   << "\n\ttotal_file_length = " << total_file_length
                   << "\n\tHEADER_SIZE = " << HEADER_SIZE << "\n";
         if(!cipher.decrypt(password, encrypted_file, decrypted_buffer)) {
-            std::cout << "crypto_file::read -> cipher.decrypt() failed.\n";
+            std::cerr << "crypto_file::read -> cipher.decrypt() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
-        std::cout << "222(" << decrypted_buffer.length() << "): \""
-                  << decrypted_buffer << "\"\n";
     }
 
     // at this point file_header and decrypted_buffer are filled
@@ -276,11 +246,11 @@ libaan::crypto::file_encryption::crypto_file::write(
     // encrypt data
     libaan::crypto::camellia::camellia_256 cipher;
     if(!cipher.init(salt, iv)) {
-        std::cout << "crypto_file::read: cipher.init() failed.\n";
+        std::cerr << "crypto_file::read: cipher.init() failed.\n";
         return INTERNAL_CIPHER_ERROR;
     }
     if(!cipher.encrypt(password, decrypted_buffer, encrypted_file)) {
-        std::cout << "crypto_file::write(): camellia_256::encrypt() failed\n";
+        std::cerr << "crypto_file::write(): camellia_256::encrypt() failed\n";
         return INTERNAL_CIPHER_ERROR;
     }
 
@@ -293,7 +263,7 @@ libaan::crypto::file_encryption::crypto_file::write(
     fp.close();
     dirty = false;
 
-    std::cout << std::dec << "crypto_file::write ->\n"
+    std::cerr << std::dec << "crypto_file::write ->\n"
               << "\tencrypted_file_length = " << encrypted_file.length()
               << "\n\ttotal_file_length = "
               << encrypted_file.length() + file_header.length()

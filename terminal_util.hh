@@ -20,16 +20,29 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _LIBAAN_TERMINAL_UTIL_HH_
 
 #include <cstdio>
+#include <cstdlib>
+#ifdef NO_GOOD
+#include <conio.h>
+
+struct winsize {
+    unsigned short ws_row;
+    unsigned short ws_col;
+    unsigned short ws_xpixel;   /* unused */
+    unsigned short ws_ypixel;   /* unused */
+};
+
+#else
 #include <poll.h>
+
 #include <signal.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <sys/signalfd.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
 #include <unistd.h>    // STDOUT_FILENO
+
+#endif
 
 #include "error_util.hh"
 
@@ -50,7 +63,11 @@ class terminal
 
     private:
     bool update_terminal_size() noexcept;
+
+#ifndef NO_GOOD
     bool winsize_signal_handler() noexcept;
+#endif
+
     std::system_error error;
     struct winsize size;
     int sigwinch_fd;
@@ -72,16 +89,21 @@ class rawmode {
     bool tty_raw(bool on);
     bool tty_reset();
 
+#ifndef NO_GOOD
  private:
     struct termios oldtermios;
     struct termios newtermios;
     int fd;
     int peek;
+#endif
 };
 
 rawmode::rawmode(int fileno)
+#ifndef NO_GOOD
         : fd(fileno), peek(-1)
+#endif
 {
+#ifndef NO_GOOD
     tcgetattr(0,&oldtermios);
     newtermios = oldtermios;
     newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~ICANON);
@@ -90,15 +112,19 @@ rawmode::rawmode(int fileno)
     newtermios.c_cc[VMIN] = 1;
     newtermios.c_cc[VTIME] = 0;
     tcsetattr(0, TCSANOW, &newtermios);
+#endif
 }
 
 rawmode::~rawmode()
 {
+#ifndef NO_GOOD
     tcsetattr(0, TCSANOW, &oldtermios);
+#endif
 }
 
 bool rawmode::kbhit()
 {
+#ifndef NO_GOOD
     unsigned char ch;
     ssize_t nread;
 
@@ -116,10 +142,15 @@ bool rawmode::kbhit()
     }
 
     return false;
+
+#else
+    return kbhit();
+#endif
 }
 
 int rawmode::getch()
 {
+#ifndef NO_GOOD
     char ch;
 
     if (peek != -1) {
@@ -129,10 +160,14 @@ int rawmode::getch()
         read(0, &ch, 1);
 
     return ch;
+#else
+    return getch();
+#endif
 }
 
 inline bool rawmode::tty_raw(bool on)
 {
+#ifndef NO_GOOD
     if(!on)
         return tty_reset();
 
@@ -196,14 +231,21 @@ inline bool rawmode::tty_raw(bool on)
     if(tcsetattr(fd, TCSAFLUSH, &newtermios) < 0)
         return false;
     return true;
+#else
+    return false;
+#endif
 }
 
 inline bool rawmode::tty_reset()
 {
+#ifndef NO_GOOD
     if(tcsetattr(fd, TCSAFLUSH, &oldtermios) < 0)
         return false;
 
     return true;
+#else
+    return true;
+#endif
 }
 
 }
@@ -211,26 +253,38 @@ inline bool rawmode::tty_reset()
 
 libaan::util::terminal::terminal() noexcept
 {
+#ifndef NO_GOOD
     size.ws_row = size.ws_col = 0;
     sigwinch_fd = -1;
     winsize_signal_handler();
     update_terminal_size();
+#endif
 }
 
 void libaan::util::terminal::alternate_screen_on() noexcept
 {
+#ifndef NO_GOOD
     printf("\033[?1049h\033[H");
+#else
+    system("cls");
+#endif
 }
 
 void libaan::util::terminal::alternate_screen_off() noexcept
 {
+#ifndef NO_GOOD
     printf("\033[?1049l");
+#endif
 }
 
-const winsize &libaan::util::terminal::get_size() const noexcept { return size; }
+const winsize &libaan::util::terminal::get_size() const noexcept
+{
+    return size;
+}
 
 bool libaan::util::terminal::size_changed() noexcept
 {
+#ifndef NO_GOOD
     struct pollfd pfd[1];
     pfd[0].fd = sigwinch_fd;
     pfd[0].events = POLLIN | POLLERR | POLLHUP;
@@ -258,6 +312,9 @@ bool libaan::util::terminal::size_changed() noexcept
     printf("SIGWINCH from user %u. Updating terminal size...\n", info.ssi_uid);
 
     return update_terminal_size();
+#else
+    return false;
+#endif
 }
 
 const std::system_error &libaan::util::terminal::get_error() const noexcept
@@ -267,6 +324,7 @@ const std::system_error &libaan::util::terminal::get_error() const noexcept
 
 bool libaan::util::terminal::update_terminal_size() noexcept
 {
+#ifndef NO_GOOD
     error = check(ioctl, STDOUT_FILENO, TIOCGWINSZ, &size);
     if (error.code())
         return false;
@@ -275,8 +333,13 @@ bool libaan::util::terminal::update_terminal_size() noexcept
     printf("columns %d\n", size.ws_col);
 
     return true;
+#else
+    return false;
+#endif
 }
 
+
+#ifndef NO_GOOD
 bool libaan::util::terminal::winsize_signal_handler() noexcept
 {
     sigset_t sigset;
@@ -298,5 +361,6 @@ bool libaan::util::terminal::winsize_signal_handler() noexcept
 
     return true;
 }
+#endif
 
 #endif

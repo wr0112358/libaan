@@ -37,10 +37,13 @@ class crypto_file
 {
 public:
     enum error_type {
+#ifdef NO_GOOD
+    #undef NO_ERROR
+#endif
         NO_ERROR,
         NO_HEADER_IN_FILE,
         CIPHER_ERROR_FILE_LENGTH,
-        INTERNAL_CIPHER_ERROR,
+        INTERNAL_CIPHER_ERROR
         // NO_SUCH_KEY if decrypt fails
     };
 
@@ -88,6 +91,9 @@ public:
         case CIPHER_ERROR_FILE_LENGTH: return "CIPHER_ERROR_FILE_LENGTH";
         case INTERNAL_CIPHER_ERROR: return "INTERNAL_CIPHER_ERROR";
         }
+#ifdef NO_GOOD
+        return "UNKNOWN ERROR";
+#endif
     }
 
 private:

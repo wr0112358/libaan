@@ -50,6 +50,39 @@ namespace util
 // https://github.com/bwalex/tc-play/blob/39125738741a43ee5888b862ab998854ba5ccf3b/io.c#L393
 //
 // or openbsd/signify/readpasphrase.c
+
+#ifdef NO_GOOD
+char *getpass(const char *prompt)
+{
+    static char buffer[255];
+    memset(buffer, 0, 255);
+
+    fprintf(stderr, "%s", prompt);
+    // Disable character echoing and line buffering
+    HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD mode;
+
+    if(!GetConsoleMode(hstdin, &mode))
+        return 0;
+    if(hstdin == INVALID_HANDLE_VALUE || !(SetConsoleMode(hstdin, 0)))
+        return 0; // Failed to disable buffering
+        
+    int i = 0;
+    int c = 0;
+    for (; (c = getchar()) != '\n' && c != EOF; ++i) {
+        if (i > 255)
+            return 0;
+        buffer[i] = c;
+    }
+    if(buffer[0])
+        puts("***");
+    if (!SetConsoleMode(hstdin, mode))
+        return 0;
+
+    return buffer;
+}
+#endif
+
 struct password_from_stdin
 {
     password_from_stdin(size_t pw_minlength = 1,

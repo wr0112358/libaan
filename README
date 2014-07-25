@@ -21,3 +21,7 @@ Missing
   unused/duplicated code should be removed or refactored.
   replace namespace util with module namespace..
   .cc files
+
+
+Compiling for Windows might work at times provided the preprocessor define
+NO_GOOD is set

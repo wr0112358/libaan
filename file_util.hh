@@ -34,6 +34,7 @@ size_t get_file_length(std::ifstream &fp);
 bool read_file(const char *file_name, std::string &buff);
 bool write_file(const char *file_name, const std::string &buff);
 
+#ifndef NO_GOOD
 class dir {
 public:
 
@@ -69,6 +70,8 @@ public:
 private:
   static size_t dirent_buf_size(DIR *dirp);
 };
+#endif
+
 }
 }
 }
@@ -109,6 +112,7 @@ inline bool libaan::util::file::write_file(const char *file_name,
     return true;
 }
 
+#ifndef NO_GOOD
 #include <cstddef>
 #include <iostream>
 #include <memory>
@@ -185,6 +189,7 @@ inline std::error_code libaan::util::file::dir::readdir(
     // TODO: readdir_r: Operation not permitted
     return std::system_error(0, std::system_category()).code();
 }
+#endif
 
 #endif
 

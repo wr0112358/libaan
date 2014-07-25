@@ -70,8 +70,12 @@ bool pbkdf2(const std::string &pw, const std::string &salt,
 #include <openssl/evp.h>
 #include <openssl/hmac.h>
 #include <sys/types.h>
+#ifdef NO_GOOD
+#include <winsock2.h>
+#else
 #include <netinet/in.h>
 #include <arpa/inet.h> /* for htonl */
+#endif
 #include <cstdint>
 #include <cstring>
 

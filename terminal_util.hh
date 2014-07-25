@@ -41,8 +41,8 @@ class terminal
     public:
     terminal() noexcept;
 
-    void alternate_screen_on() noexcept;
-    void alternate_screen_off() noexcept;
+    static void alternate_screen_on() noexcept;
+    static void alternate_screen_off() noexcept;
     const winsize &get_size() const noexcept;
     bool size_changed() noexcept;
     // maybe integrate BA_tty_functions

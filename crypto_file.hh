@@ -16,8 +16,8 @@ along with this program; if not, write to the Free Software
 Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 */
 
-#ifndef _LIBAAN_CRYPTO_UNTESTED_HH_
-#define _LIBAAN_CRYPTO_UNTESTED_HH_
+#ifndef _LIBAAN_CRYPTO_FILE_HH_
+#define _LIBAAN_CRYPTO_FILE_HH_
 
 #include "file_util.hh"
 #include "crypto_camellia.hh"
@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace libaan {
 namespace crypto {
-namespace file_encryption {
+namespace file {
 
 const size_t HEADER_SIZE = 64;
 const std::string MAGIC = {'\x13', '\x13', '\x13', '\x13',
@@ -41,15 +41,23 @@ public:
         NO_HEADER_IN_FILE,
         CIPHER_ERROR_FILE_LENGTH,
         INTERNAL_CIPHER_ERROR,
+        // NO_SUCH_KEY if decrypt fails
     };
 
 /*
+TODO
 - memset(0) before/after use
 - mlock on decrypted string buffer?
 */
 public:
     crypto_file(const std::string &file_name /*, cipher_type type*/)
         : total_file_length(0), dirty(false), filename(file_name) {}
+
+    ~crypto_file()
+    {
+        // Overwrite memory.
+        clear_buffers();
+    }
 
     // read specified file in buffer.
     // password is not saved.
@@ -100,7 +108,7 @@ private:
     std::string iv;
     std::string encrypted_file;
     std::string decrypted_buffer;
-    // decrypted_buffer was updated. encrypted_file is not up-to-date.
+    // decrypted_buffer changed. encrypted_file must be updated.
     bool dirty;
 
     const std::string filename;
@@ -114,7 +122,7 @@ private:
 
 #include "crypto_camellia.hh"
 
-inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
+inline bool libaan::crypto::file::crypto_file::parse_header()
 {
     size_t off = 0;
     std::string magic_tmp = file_header.substr(off, MAGIC.length());
@@ -143,7 +151,7 @@ inline bool libaan::crypto::file_encryption::crypto_file::parse_header()
 }
 
 inline void
-libaan::crypto::file_encryption::crypto_file::build_header_from_buffers()
+libaan::crypto::file::crypto_file::build_header_from_buffers()
 {
     file_header.resize(HEADER_SIZE);
     std::fill(file_header.begin(), file_header.end(), 0);
@@ -170,17 +178,18 @@ libaan::crypto::file_encryption::crypto_file::build_header_from_buffers()
                         file_header.begin() + off + iv_tmp.length(), iv_tmp);
 }
 
-inline libaan::crypto::file_encryption::crypto_file::error_type
-libaan::crypto::file_encryption::crypto_file::read(
+inline libaan::crypto::file::crypto_file::error_type
+libaan::crypto::file::crypto_file::read(
     const std::string &password)
 {
     clear_buffers();
     dirty = false;
-    // possible cases:
-    // - A: file does not exist:
+
+    // possible cases
+    // o File does not exist
     //   + generate iv/salt via camellia api and write header to file.
     //   (-> return error if file io fails)
-    // - B: file exists:
+    // o File exists
     //   + header valid. contains iv and salt. -> read and decrypt
     //   + header invalid. return error
 
@@ -189,9 +198,9 @@ libaan::crypto::file_encryption::crypto_file::read(
     total_file_length = util::file::get_file_length(fp);
 
     if (total_file_length < HEADER_SIZE) {
-        // case A: No header/empty file. Create new header.
+        // No header/empty file. Create new header.
         if(!cipher.init()) {
-            std::cout << "cipher.init() failed\n";
+            // std::cout << "cipher.init() failed\n";
             return INTERNAL_CIPHER_ERROR;
         }
         iv = cipher.iv;
@@ -199,7 +208,8 @@ libaan::crypto::file_encryption::crypto_file::read(
         set_dirty();
         // Clearing dst-file not necessary, since dirty flag is set.
     } else {
-        // case B: File contains something. Read header and encrypted contents in buffers.
+        // File contains something. Read header and encrypted contents
+        // in buffers.
         file_header.resize(HEADER_SIZE);
         char *begin = &*file_header.begin();
         // read header
@@ -209,41 +219,34 @@ libaan::crypto::file_encryption::crypto_file::read(
             return NO_HEADER_IN_FILE;
         }
         const size_t encrypted_file_length = total_file_length - HEADER_SIZE;
-        if(!encrypted_file_length)
-            std::cerr << "crypto_file::read -> header exists, file empty\n";
+        // if(!encrypted_file_length)
+        //     std::cerr << "crypto_file::read -> header exists, file empty\n";
         encrypted_file.resize(encrypted_file_length);
         begin = &*encrypted_file.begin();
+
         // read encrypted contents
         fp.read(begin, encrypted_file_length);
         if(!cipher.init(salt, iv)) {
-            std::cerr << "crypto_file::read -> cipher.init() failed.\n";
+            // std::cerr << "crypto_file::read -> cipher.init() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
         decrypted_buffer.resize(encrypted_file_length);
 
-        std::cerr << std::dec
-                  << "crypto_file::read ->\n"
-                  << "\tencrypted_file_length = " << encrypted_file_length
-                  << "\n\ttotal_file_length = " << total_file_length
-                  << "\n\tHEADER_SIZE = " << HEADER_SIZE << "\n";
         if(!cipher.decrypt(password, encrypted_file, decrypted_buffer)) {
             std::cerr << "crypto_file::read -> cipher.decrypt() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
     }
-
     // at this point file_header and decrypted_buffer are filled
 
     return error(NO_ERROR);
 }
 
-inline libaan::crypto::file_encryption::crypto_file::error_type
-libaan::crypto::file_encryption::crypto_file::write(
+inline libaan::crypto::file::crypto_file::error_type
+libaan::crypto::file::crypto_file::write(
     const std::string &password)
 {
-    // build header
     build_header_from_buffers();
-    // encrypt data
     libaan::crypto::camellia::camellia_256 cipher;
     if(!cipher.init(salt, iv)) {
         std::cerr << "crypto_file::read: cipher.init() failed.\n";
@@ -262,12 +265,6 @@ libaan::crypto::file_encryption::crypto_file::write(
     fp.write(begin, encrypted_file.length());
     fp.close();
     dirty = false;
-
-    std::cerr << std::dec << "crypto_file::write ->\n"
-              << "\tencrypted_file_length = " << encrypted_file.length()
-              << "\n\ttotal_file_length = "
-              << encrypted_file.length() + file_header.length()
-              << "\n\tHEADER_SIZE = " << file_header.length() << "\n";
 
     return error(NO_ERROR);
 }

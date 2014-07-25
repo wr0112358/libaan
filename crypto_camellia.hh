@@ -31,6 +31,8 @@ namespace camellia {
 TODO
 - EVP_DecryptUpdate has problems reading cipher texts padded to minimal size(BLOCK_SIZE)
 */
+
+// De-/Encryption of variable length strings with camellia block cipher.
 class camellia_256 {
 public:
     static const uint8_t KEY_SIZE = 32; //256bit camellia
@@ -133,8 +135,14 @@ inline bool libaan::crypto::camellia::camellia_256::do_encrypt(
 {
     //std::cout << "encrypt iv:"; hex(iv, "\t");
     //std::cout << "encrypt salt:"; hex(salt, "\t");
-    if(!plain_in.length() || (cipher_out.length() != plain_in.length() + BLOCK_SIZE))
+    if(!plain_in.length()
+       || (cipher_out.length() != plain_in.length() + BLOCK_SIZE)) {
+        std::cerr << "camellia_256::do_encrypt: wrong buffersizes specified:\n"
+                  << "\tplain_in.length() = " << plain_in.length() << "\n"
+                  << "\tcipher_out.length() = " << cipher_out.length() << "\n"
+                  << "\tBLOCK_SIZE = " << BLOCK_SIZE << "\n";
         return false;
+    }
 
     unsigned char *data =
         reinterpret_cast<unsigned char *>(const_cast<char *>(&plain_in[0]));
@@ -166,7 +174,8 @@ inline bool libaan::crypto::camellia::camellia_256::do_encrypt(
         if(input_offset == plain_in.length())
             break;
         if(input_offset > plain_in.length()) {
-            std::cout << "Encrypt: Fatal Error(input_offset > plain_in.length())\n";
+            std::cout
+                << "Encrypt: Fatal Error(input_offset > plain_in.length())\n";
             break;
         }
     }
@@ -224,7 +233,7 @@ inline bool libaan::crypto::camellia::camellia_256::do_decrypt(
     ol += written;
     //std::cout << "decrypt-final: (total-written = " << ol << ", written = " << written << ")\n";
     plain_out.resize(ol);
-    std::cout << "decrypt-3.plain("<<plain_out.length()<<"): \"" << plain_out << "\"\n";
+    //std::cout << "decrypt-3.plain("<<plain_out.length()<<"): \"" << plain_out << "\"\n";
     //std::cout << "decrypt: (in.size = " << cipher_in.length()
     //          << ", out.size = " << plain_out.length() << ")\n";
     return true;
@@ -292,7 +301,8 @@ inline bool libaan::crypto::camellia::camellia_256::encrypt(
         return false;
 
     EVP_CIPHER_CTX ctx;
-    if(!EVP_EncryptInit(&ctx, EVP_camellia_256_cbc(), reinterpret_cast<unsigned char *>(&key[0]),
+    if(!EVP_EncryptInit(&ctx, EVP_camellia_256_cbc(),
+                        reinterpret_cast<unsigned char *>(&key[0]),
                         reinterpret_cast<unsigned char *>(&iv[0]))) {
         std::cout << "EVP_EncryptInit failed\n";
         return false;
@@ -315,14 +325,14 @@ inline bool libaan::crypto::camellia::camellia_256::decrypt(
         return false;
 
     EVP_CIPHER_CTX ctx;
-    if(!EVP_DecryptInit(&ctx, EVP_camellia_256_cbc(), reinterpret_cast<unsigned char *>(&key[0]),
+    if(!EVP_DecryptInit(&ctx, EVP_camellia_256_cbc(),
+                        reinterpret_cast<unsigned char *>(&key[0]),
                         reinterpret_cast<unsigned char *>(&iv[0]))) {
         std::cout << "EVP_EncryptInit failed\n";
         return false;
     }
-    std::cout << "decrypt-1.plain("<<plain.length()<<"): \"" << plain << "\"\n";
     plain.resize(cipher.length() + BLOCK_SIZE + 1);
-    std::cout << "decrypt-2.plain("<<plain.length()<<"): \"" << plain << "\"\n";
+
     return do_decrypt(&ctx, cipher, plain);
 }
 

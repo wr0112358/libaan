@@ -31,34 +31,39 @@ namespace crypto
 namespace util
 {
 /* Usage:
-    const password_from_stdin pw2(6);
-    std::cout << "password_from_stdin: ";
-    if(pw2.have_password)
-        std:: cout << "\"" << pw2.password << "\"\n";
-    else {
-        std::cout << "failed.\n";
-        return false;
-    }
+   {
+   const password_from_stdin pw(6);
+   std::cout << "password_from_stdin: ";
+   if(!pw)
+       std:: cout << "\"" << pw2.password << "\"\n";
+   else {
+       std::cout << "failed.\n";
+       return false;
+   }
+   }
 */
 
-/* TODO
-  since getpass(3) is deprecated, maybe use something self written.
-  https://github.com/bwalex/tc-play/blob/39125738741a43ee5888b862ab998854ba5ccf3b/io.c#L393
-  read_passphrase(...) from this truecrypt fork looks good.
-*/
+
+
+// since getpass(3) is deprecated, maybe use something self written.
+// or read_passphrase(...) from this truecrypt fork looks good at first glance.
+// https://github.com/bwalex/tc-play/blob/39125738741a43ee5888b862ab998854ba5ccf3b/io.c#L393
+//
+// or openbsd/signify/readpasphrase.c
 struct password_from_stdin
 {
-    password_from_stdin(size_t pw_minlength = 1) : state(false), password("");
+    password_from_stdin(size_t pw_minlength = 1,
+                        const std::string &prompt = "Enter password: ")
     {
-        state = false;
+        have_password = false;
         // points to static pw buffer after reading the input.
-        char *pw = getpass("Enter password: ");
+        char * pw = getpass(prompt.c_str());
         if(!pw || (std::strlen(pw) < pw_minlength))
             return;
         password = pw;
-        for(char *p = pw; *p;)
+        for(char * p = pw; *p;)
             *p++ = '\0';
-        state = true;
+        have_password = true;
     }
 
     ~password_from_stdin()
@@ -67,10 +72,14 @@ struct password_from_stdin
     }
 
     operator std::string() const { return password; }
+    operator bool() const { return have_password; }
 
-    bool state;
+    bool have_password;
     std::string password;
 };
+
 }
 }
 }
+
+#endif

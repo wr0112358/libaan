@@ -1,6 +1,6 @@
 include ../Makefile.in
 
-test: test_x11_util crypto_util_test crypto_util_test_camellia test_terminal test_string_util
+test: test_x11_util crypto_file_test crypto_util_test crypto_util_test_camellia test_terminal test_string_util
 #crypto_util_test_lion 
 
 test_x11_util: test_x11_util.cc
@@ -19,5 +19,8 @@ crypto_util_test_lion: crypto_util_test_lion.cc
 test_string_util: test_string_util.cc
 	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@
 
+crypto_file_test: crypto_file_test.cc
+	$(CXX) $(CXX_FLAGS) -lssl -lcrypto $^ -o $@
+
 clean:
-	rm -f test_terminal test_x11_util crypto_util_test crypto_util_test_camellia test_string_util
+	rm -f test_terminal test_x11_util crypto_util_test crypto_util_test_camellia test_string_util crypto_file_test

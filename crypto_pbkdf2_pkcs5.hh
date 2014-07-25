@@ -25,7 +25,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace libaan {
 namespace crypto {
-// Generate a key form a password.
+// Generate a key from a password.
 namespace pbkdf2_pkcs5 {
 
 // http://www.ietf.org/rfc/rfc2898.txt
@@ -49,13 +49,16 @@ void pkcs5_initial_prf(const unsigned char *password, size_t password_length,
 void pkcs5_subsequent_prf(const unsigned char *password, size_t password_length,
                           unsigned char *v, size_t vlen, unsigned char *o,
                           size_t *olen);
+
 void pkcs5_F(const unsigned char *password, size_t password_length,
              const unsigned char *salt, size_t salt_length, size_t ic,
              size_t bix, unsigned char *out);
+
 bool pbkdf2(const unsigned char *password, unsigned int password_length,
             const unsigned char *salt, uint64_t salt_length,
             unsigned int iteration_count, unsigned char *derived_key,
             uint64_t derived_key_length);
+
 // c++ wrapper for pbkdf2, derived_key should be resized to wanted size
 bool pbkdf2(const std::string &pw, const std::string &salt,
             unsigned int iteration_count, std::string &derived_key);

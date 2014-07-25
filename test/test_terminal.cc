@@ -57,8 +57,9 @@ void test3()
             libaan::util::rawmode tty_raw;
             bool readsth = false;
             while (tty_raw.kbhit()) {
-                char c = static_cast<char>(tty_raw.getch());
-                std::cout << "\tyes: " << c << "\n";
+                const auto in = tty_raw.getch();
+                char c = static_cast<char>(in);
+                std::cout << "\tyes: " << c << "\t" << in << "\n";
                 if(c == 'q')
                     return;
                 readsth = true;
@@ -72,8 +73,6 @@ void test3()
     }
 
 }
-
-
 
 int main()
 {

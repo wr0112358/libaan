@@ -34,12 +34,11 @@ namespace util
    {
    const password_from_stdin pw(6);
    std::cout << "password_from_stdin: ";
-   if(!pw)
-       std:: cout << "\"" << pw2.password << "\"\n";
-   else {
+   if(!pw) {
        std::cout << "failed.\n";
        return false;
-   }
+   } else
+       std:: cout << "\"" << pw2.password << "\"\n";
    }
 */
 

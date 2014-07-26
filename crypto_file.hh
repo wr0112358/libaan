@@ -147,11 +147,10 @@ inline bool libaan::crypto::file::crypto_file::parse_header()
     off += VERSION_0010.length();
 
     salt = file_header.substr(
-        off, libaan::crypto::camellia::camellia_256::SALT_SIZE);
-    off += libaan::crypto::camellia::camellia_256::BLOCK_SIZE;
+        off, camellia::camellia_256::SALT_SIZE);
+    off += camellia::camellia_256::BLOCK_SIZE;
 
-    iv = file_header.substr(off,
-                            libaan::crypto::camellia::camellia_256::BLOCK_SIZE);
+    iv = file_header.substr(off, camellia::camellia_256::BLOCK_SIZE);
 
     return true;
 }
@@ -171,14 +170,14 @@ libaan::crypto::file::crypto_file::build_header_from_buffers()
                         VERSION_0010);
     off += VERSION_0010.length();
 
-    std::string salt_tmp(libaan::crypto::camellia::camellia_256::SALT_SIZE, 0);
+    std::string salt_tmp(camellia::camellia_256::SALT_SIZE, 0);
     salt_tmp.replace(salt_tmp.begin(), salt_tmp.end(), salt);
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + salt_tmp.length(),
                         salt_tmp);
     off += salt_tmp.length();
 
-    std::string iv_tmp(libaan::crypto::camellia::camellia_256::BLOCK_SIZE, 0);
+    std::string iv_tmp(camellia::camellia_256::BLOCK_SIZE, 0);
     iv_tmp.replace(iv_tmp.begin(), iv_tmp.end(), iv);
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + iv_tmp.length(), iv_tmp);
@@ -199,14 +198,13 @@ libaan::crypto::file::crypto_file::read(
     //   + header valid. contains iv and salt. -> read and decrypt
     //   + header invalid. return error
 
-    libaan::crypto::camellia::camellia_256 cipher;
+    camellia::camellia_256 cipher;
     std::ifstream fp(filename, std::ios_base::in | std::ios_base::binary);
     total_file_length = util::file::get_file_length(fp);
 
     if (total_file_length < HEADER_SIZE) {
         // No header/empty file. Create new header.
         if(!cipher.init()) {
-            // std::cout << "cipher.init() failed\n";
             return INTERNAL_CIPHER_ERROR;
         }
         iv = cipher.iv;
@@ -233,7 +231,6 @@ libaan::crypto::file::crypto_file::read(
         // read encrypted contents
         fp.read(begin, encrypted_file_length);
         if(!cipher.init(salt, iv)) {
-            // std::cerr << "crypto_file::read -> cipher.init() failed.\n";
             return INTERNAL_CIPHER_ERROR;
         }
         decrypted_buffer.resize(encrypted_file_length);
@@ -253,7 +250,7 @@ libaan::crypto::file::crypto_file::write(
     const std::string &password)
 {
     build_header_from_buffers();
-    libaan::crypto::camellia::camellia_256 cipher;
+    camellia::camellia_256 cipher;
     if(!cipher.init(salt, iv)) {
         std::cerr << "crypto_file::read: cipher.init() failed.\n";
         return INTERNAL_CIPHER_ERROR;

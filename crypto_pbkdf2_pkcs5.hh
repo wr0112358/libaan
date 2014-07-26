@@ -36,7 +36,7 @@ const size_t PRF_OUTPUT_LENGTH = 20;
  * always gives 20-byte outputs.
  */
 
-/* The first three functions are internal helper functions. */
+// internal helper functions.
 void pkcs5_initial_prf(const unsigned char *password, size_t password_length,
                        const unsigned char *salt, size_t salt_length, size_t i,
                        unsigned char *out, size_t *outlen);
@@ -105,29 +105,35 @@ inline void libaan::crypto::pbkdf2_pkcs5::pkcs5_subsequent_prf(
     HMAC_Final(&ctx, o, (unsigned int *)olen);
 }
 
-inline void libaan::crypto::pbkdf2_pkcs5::pkcs5_F(
-    const unsigned char *password, size_t password_length,
-    const unsigned char *salt, size_t salt_length, size_t ic, size_t bix,
-    unsigned char *out)
+inline void libaan::crypto::pbkdf2_pkcs5::pkcs5_F(const unsigned char *password,
+                                                  size_t password_length,
+                                                  const unsigned char *salt,
+                                                  size_t salt_length, size_t ic,
+                                                  size_t bix,
+                                                  unsigned char *out)
 {
     size_t i = 1, j, outlen;
     unsigned char ulast[PRF_OUTPUT_LENGTH];
     memset(out, 0, PRF_OUTPUT_LENGTH);
-    pkcs5_initial_prf(password, password_length, salt, salt_length, bix, ulast, &outlen);
+    pkcs5_initial_prf(password, password_length, salt, salt_length, bix, ulast,
+                      &outlen);
     while (i++ <= ic) {
         for (j = 0; j < PRF_OUTPUT_LENGTH; j++)
             out[j] ^= ulast[j];
-        pkcs5_subsequent_prf(password, password_length, ulast, PRF_OUTPUT_LENGTH, ulast, &outlen);
+        pkcs5_subsequent_prf(password, password_length, ulast,
+                             PRF_OUTPUT_LENGTH, ulast, &outlen);
     }
     for (j = 0; j < PRF_OUTPUT_LENGTH; j++)
         out[j] ^= ulast[j];
 }
 
-inline bool libaan::crypto::pbkdf2_pkcs5::pbkdf2(
-    const unsigned char *password, unsigned int password_length,
-    const unsigned char *salt, uint64_t salt_length,
-    unsigned int iteration_count, unsigned char *derived_key,
-    uint64_t derived_key_length)
+inline bool libaan::crypto::pbkdf2_pkcs5::pbkdf2(const unsigned char *password,
+                                                 unsigned int password_length,
+                                                 const unsigned char *salt,
+                                                 uint64_t salt_length,
+                                                 unsigned int iteration_count,
+                                                 unsigned char *derived_key,
+                                                 uint64_t derived_key_length)
 {
     unsigned long i, l, r;
     unsigned char final[PRF_OUTPUT_LENGTH] = { 0, };
@@ -149,9 +155,10 @@ inline bool libaan::crypto::pbkdf2_pkcs5::pbkdf2(
     return true;
 }
 
-inline bool libaan::crypto::pbkdf2_pkcs5::pbkdf2(
-    const std::string &pw, const std::string &salt,
-    unsigned int iteration_count, std::string &derived_key)
+inline bool libaan::crypto::pbkdf2_pkcs5::pbkdf2(const std::string &pw,
+                                                 const std::string &salt,
+                                                 unsigned int iteration_count,
+                                                 std::string &derived_key)
 {
     return pbkdf2(
         reinterpret_cast<const unsigned char *>(pw.c_str()), pw.length(),

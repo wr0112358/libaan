@@ -92,7 +92,6 @@ char *getpass(const char *prompt)
     if (!SetConsoleMode(hstdin, mode))
         return 0;
 
-    printf("password is: \"%s\"\n",buffer);
     return buffer;
 }
 #endif
@@ -110,14 +109,6 @@ struct password_from_stdin
         password = pw;
         for(char * p = pw; *p;)
             *p++ = '\0';
-
-#ifdef NO_GOOD
-        printf("c++ password is: \"%s\" -> length = %llu\n",
-               password.c_str(), password.length());
-#else
-        printf("c++ password is: \"%s\" -> length = %lu\n",
-               password.c_str(), password.length());
-#endif
 
         have_password = true;
     }

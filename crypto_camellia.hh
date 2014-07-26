@@ -147,12 +147,21 @@ inline bool read_random_bytes(size_t count, std::string & bytes)
 {
     bytes.resize(count);
 
-const std::string REAL_RANDOM_NUMBERS = "/dev/random";
-const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
+#ifndef NO_GOOD
+    const std::string REAL_RANDOM_NUMBERS = "/dev/random";
+    const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
 
-    std::ifstream f(PSEUDO_RANDOM_NUMBERS);
+    std::ifstream f(PSEUDO_RANDOM_NUMBERS,
+                    std::ios_base::in | std::ios_base::binary);
     f.read(&bytes[0], count);
+    return f;
+#else
+    std::fill(bytes.begin(), bytes.end(), 0);
+    // TODO:
+    // http://msdn.microsoft.com/en-us/library/aa382048.aspx
+    // http://msdn.microsoft.com/en-us/library/aa379942.aspx
     return true;
+#endif
 }
 
 // TODO: provide 2nd version for incremental encryption(see opennssl book s.186 "incremental_ecrypt(...)"

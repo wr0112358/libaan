@@ -200,7 +200,7 @@ libaan::crypto::file::crypto_file::read(
     //   + header invalid. return error
 
     libaan::crypto::camellia::camellia_256 cipher;
-    std::ifstream fp(filename);
+    std::ifstream fp(filename, std::ios_base::in | std::ios_base::binary);
     total_file_length = util::file::get_file_length(fp);
 
     if (total_file_length < HEADER_SIZE) {
@@ -264,7 +264,7 @@ libaan::crypto::file::crypto_file::write(
     }
 
     // write buffers to file
-    std::ofstream fp(filename);
+    std::ofstream fp(filename, std::ios_base::out | std::ios_base::binary);
     char *begin = &*file_header.begin();
     fp.write(begin, file_header.length());
     begin = &*encrypted_file.begin();

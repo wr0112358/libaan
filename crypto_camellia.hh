@@ -21,18 +21,44 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "crypto_pbkdf2_pkcs5.hh"
 
+#include <openssl/err.h>
 #include <openssl/evp.h>
 
 namespace libaan {
 namespace crypto {
 namespace camellia {
 
+void dump_evp_info(const EVP_CIPHER *ctx, const std::string &prefix = "")
+{
+    std::string mode_string;
+    switch(EVP_CIPHER_mode(ctx)) {
+    case EVP_CIPH_ECB_MODE:
+        mode_string = "EVP_CIPH_ECB_MODE";
+        break;
+    case EVP_CIPH_CBC_MODE:
+        mode_string = "EVP_CIPH_CBC_MODE";
+        break;
+    case EVP_CIPH_CFB_MODE:
+        mode_string = "EVP_CIPH_CFB_MODE";
+        break;
+    case EVP_CIPH_OFB_MODE:
+        mode_string = "EVP_CIPH_OFB_MODE";
+        break;
+    case EVP_CIPH_STREAM_CIPHER:
+        mode_string = "EVP_CIPH_STREAM_CIPHER";
+        break;
+    default:
+        mode_string = "UNKNOWN_CIPHER_MODE";
+    }
+    std::cout << prefix << "\n\tmode = " << mode_string << "\n";
+}
+
 /*
 TODO
 - EVP_DecryptUpdate has problems reading cipher texts padded to minimal size(BLOCK_SIZE)
 */
 
-// De-/Encryption of variable length strings with camellia block cipher.
+// De-/Encryption of variable length strings with camellia block cipher in CBC mode.
 class camellia_256 {
 public:
     static const uint8_t KEY_SIZE = 32; //256bit camellia
@@ -224,11 +250,26 @@ inline bool libaan::crypto::camellia::camellia_256::do_decrypt(
     //std::cout << "decrypt: (written = " << ol << ")\n";
     //dump_last_written(plain_out, 0, ol, false, "decryption -> written", "\t");
 
+
+        std::cerr << "\tbuffersizes:\n"
+                  << "\tcipher_in.length() = " << cipher_in.length() << "\n"
+                  << "\tplain_out.length() = " << plain_out.length() << "\n"
+                  << "\tBLOCK_SIZE = " << BLOCK_SIZE << "\n";
+
+        ERR_load_crypto_strings();
     int written = 0;
     if(!EVP_DecryptFinal(ctx, &out[ol], &written)) {
-        std::cout << "EVP_DecryptFinal failed\n";
+        unsigned long err = ERR_get_error();
+        std::cout << "EVP_DecryptFinal failed:\n\toffset = " << ol
+                  << "\n\twritten = " << written << "\n";
+        ERR_print_errors_fp(stdout);
+        std::cout << "\n\"" << ERR_error_string(err, nullptr) << "\"\n";
         return false;
     }
+
+        std::cout << "EVP_DecryptFinal SUCCESS:\n\toffset = " << ol
+                  << "\n\twritten = " << written << "\n";
+
     //dump_last_written(plain_out, ol, written, false, "decryption-final -> written", "\t");
     ol += written;
     //std::cout << "decrypt-final: (total-written = " << ol << ", written = " << written << ")\n";
@@ -311,6 +352,7 @@ inline bool libaan::crypto::camellia::camellia_256::encrypt(
     cipher.resize(plain.length() + BLOCK_SIZE);
     bool ret = do_encrypt(&ctx, plain, cipher);
 
+    //dump_evp_info(EVP_camellia_256_cbc(), "camellia: ");
     return ret;
 }
 
@@ -333,6 +375,7 @@ inline bool libaan::crypto::camellia::camellia_256::decrypt(
     }
     plain.resize(cipher.length() + BLOCK_SIZE + 1);
 
+    //dump_evp_info(EVP_camellia_256_cbc(), "camellia: ");
     return do_decrypt(&ctx, cipher, plain);
 }
 

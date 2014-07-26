@@ -58,27 +58,42 @@ char *getpass(const char *prompt)
     memset(buffer, 0, 255);
 
     fprintf(stderr, "%s", prompt);
+
     // Disable character echoing and line buffering
     HANDLE hstdin = GetStdHandle(STD_INPUT_HANDLE);
     DWORD mode;
 
     if(!GetConsoleMode(hstdin, &mode))
         return 0;
-    if(hstdin == INVALID_HANDLE_VALUE || !(SetConsoleMode(hstdin, 0)))
+    if(hstdin == INVALID_HANDLE_VALUE
+       || !(SetConsoleMode(hstdin,
+                           mode & ~(ENABLE_ECHO_INPUT | ENABLE_LINE_INPUT))))
         return 0; // Failed to disable buffering
-        
-    int i = 0;
-    int c = 0;
-    for (; (c = getchar()) != '\n' && c != EOF; ++i) {
-        if (i > 255)
-            return 0;
+
+    DWORD dwread;
+    std::size_t i = 0;
+    unsigned char c = 0;
+    while(ReadConsoleA(hstdin, &c, 1, &dwread, nullptr)) {
+        if(c == '\n' || c == '\r' || i == 254) {
+            buffer[i] = '\0';
+            break;
+        }
+        if(c == (char)8 && i) {
+            --i;
+            putchar('\b');
+        }
         buffer[i] = c;
+        putchar('*');
+
+        ++i;
     }
     if(buffer[0])
-        puts("***");
+        puts("");
+
     if (!SetConsoleMode(hstdin, mode))
         return 0;
 
+    printf("password is: \"%s\"\n",buffer);
     return buffer;
 }
 #endif
@@ -96,6 +111,15 @@ struct password_from_stdin
         password = pw;
         for(char * p = pw; *p;)
             *p++ = '\0';
+
+#ifdef NO_GOOD
+        printf("c++ password is: \"%s\" -> length = %llu\n",
+               password.c_str(), password.length());
+#else
+        printf("c++ password is: \"%s\" -> length = %lu\n",
+               password.c_str(), password.length());
+#endif
+
         have_password = true;
     }
 

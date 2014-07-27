@@ -19,6 +19,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef _LIBAAN_X11_UTIL_HH_
 #define _LIBAAN_X11_UTIL_HH_
 
+#include <algorithm> // debug: fill
 #include <chrono>
 #include <iostream>
 #include <unistd.h>   
@@ -47,6 +48,10 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     Display *display = XOpenDisplay(NULL);
     if(!display)
         return false;
+
+    const auto TARGETS_ATOM = XInternAtom(display, "TARGETS", False);
+    const auto UTF8STRING_ATOM = XInternAtom (display, "UTF8_STRING", False);
+
     Window window = XCreateWindow(display, DefaultRootWindow(display),
                                   0, 0, 1, 1, // x, y, w, h
                                   0, 0, // border_width, depth
@@ -57,6 +62,7 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     XIconifyWindow(display, window, DefaultScreen(display));
 
     XEvent event;
+    std::fill((char *)&event.xselectionrequest, (char *)&event.xselectionrequest + sizeof(XEvent), 0);
     do // search for MapNotify Event in event queue, may block
         XNextEvent(display, &event);
     while(event.type != MapNotify);
@@ -65,6 +71,7 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     XSelectInput(display, window, StructureNotifyMask + ExposureMask);
 
     Bool event_status = false;
+    bool loop_done = false;
     libaan::util::time_me_ms timer;
     do {
         XSetSelectionOwner(display, XA_PRIMARY, window, CurrentTime);
@@ -77,23 +84,64 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
                 return false;
             }
         }
-        if(event_status)
-            break;
-    } while(!event_status || (event.xselectionrequest.target != XA_STRING));
 
-    std::cout << "Received Selection Request\n";
+        if(event_status) {
+            if(event.xselectionrequest.target == XA_STRING
+               || event.xselectionrequest.target == UTF8STRING_ATOM)
+                loop_done = true;
+            else if(event.xselectionrequest.target == TARGETS_ATOM) {
+
+                // special setup necessary for kde applications.
+                // send XEvent and wait for next SelectionRequest
+                // see function CopyFromWindows in:
+                // http://www.mail-archive.com/cygwin-xfree@cygwin.com/msg00897.html
+
+                Atom target_atoms[2] = {UTF8STRING_ATOM, XA_STRING};
+                XChangeProperty(display, event.xselectionrequest.requestor,
+                                event.xselectionrequest.property,
+                                event.xselectionrequest.target, 8,
+                                PropModeReplace, (unsigned char *)(target_atoms),
+                                sizeof(target_atoms));
+
+                // Setup selection notify xevent
+                XSelectionEvent respond;
+                respond.type = SelectionNotify;
+                respond.send_event = True;
+                respond.display = display;
+                respond.requestor = event.xselectionrequest.requestor;
+                respond.selection = event.xselectionrequest.selection;
+                respond.target = event.xselectionrequest.target;
+                respond.property = event.xselectionrequest.property;
+                respond.time = event.xselectionrequest.time;
+                // Notify the requesting window that the operation has completed
+                XSendEvent(display, respond.requestor, False, 0L,
+                           (XEvent *)&respond);
+                XFlush(display);
+                event_status = false;
+            }
+        }
+    } while(!loop_done);
+
+//    std::cout << "Received Selection Request\n";
 
     const XSelectionRequestEvent &request = event.xselectionrequest;
-    std::cout << "\twindow(" << (int)window << ")"
-        << " -> received selection request from:\n\t\txselection.requester("
-        << (int)event.xselection.requestor << ")->(property = " << request.property
-        << ", target = " << request.target << ", selection = " << request.selection
-        << ")\n";
 
+/*
+    std::cout << "\twindow(" << (int)window << ")"
+              << " -> received selection request from:"
+              << "\n\t\txselection.owner(" << (int)request.owner << ")"
+              << "\n\t\txselection.requestor("
+              << (int)request.requestor << ")->(property = " << request.property
+              << ", target = " << request.target << ", selection = " << request.selection
+              << ")\n";
+*/
+
+    // Setup the receiving window and send the string:
     XChangeProperty(display, request.requestor, request.property, XA_STRING, 8,
                     PropModeReplace,
                     reinterpret_cast<const unsigned char *>(string.c_str()),
                     static_cast<int>(string.size()));
+
     XEvent respond;
     respond.xselection.property = request.property;
     respond.xselection.type = SelectionNotify;
@@ -104,24 +152,6 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     respond.xselection.time = request.time;
     XSendEvent(display, request.requestor, 0, 0, &respond);
     XFlush(display);
-
-/* according to stackoverflow kde might need some special code.. can't test, only copied.
-    const Atom XA_TARGETS = XInternAtom(display, "TARGETS", True);
-    const Atom XA_CLIPBOARD = XInternAtom(display, "CLIPBOARD", True);
-    if (request.target == XA_TARGETS &&
-               request.selection == XA_CLIPBOARD) {
-        std::cout << "\tKDE is used.(Untested code)\n";
-        Atom supported[] = {XA_STRING};
-        XChangeProperty(display, request.requestor,
-                        request.property,
-                        XA_TARGETS, 8,
-                        PropModeReplace, (unsigned char *)(&supported),
-                        sizeof(supported));
-    } else {    // Strings only please
-        std::cout << "\tTarget(" << (int)request.target << ") not a string\n";
-        respond.xselection.property = None;
-    }
-*/
 
     return true;
 }

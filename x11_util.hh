@@ -47,10 +47,14 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     Display *display = XOpenDisplay(NULL);
     if(!display)
         return false;
-    Window window = XCreateSimpleWindow(display, DefaultRootWindow(display), 0,
-                                        0, 200, 100, 0, 0, 0);
+    Window window = XCreateWindow(display, DefaultRootWindow(display),
+                                  0, 0, 1, 1, // x, y, w, h
+                                  0, 0, // border_width, depth
+                                  InputOnly,
+                                  CopyFromParent, 0, nullptr);
     XSelectInput(display, window, StructureNotifyMask);
     XMapWindow(display, window);
+    XIconifyWindow(display, window, DefaultScreen(display));
 
     XEvent event;
     do // search for MapNotify Event in event queue, may block

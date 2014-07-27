@@ -19,9 +19,8 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef _LIBAAN_X11_UTIL_HH_
 #define _LIBAAN_X11_UTIL_HH_
 
-#include <algorithm> // debug: fill
 #include <chrono>
-#include <iostream>
+//#include <iostream>
 #include <unistd.h>   
 #include <cstdlib>
 
@@ -62,7 +61,6 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
     XIconifyWindow(display, window, DefaultScreen(display));
 
     XEvent event;
-    std::fill((char *)&event.xselectionrequest, (char *)&event.xselectionrequest + sizeof(XEvent), 0);
     do // search for MapNotify Event in event queue, may block
         XNextEvent(display, &event);
     while(event.type != MapNotify);
@@ -80,7 +78,7 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
         // Get first SelectionRequest
         while(!(event_status = XCheckTypedEvent(display, SelectionRequest, &event))) {
             if(timer.duration() >= try_for.count()) {
-                std::cout << "TIMEOUT\n";
+                //std::cout << "TIMEOUT\n";
                 return false;
             }
         }
@@ -122,12 +120,10 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
         }
     } while(!loop_done);
 
-//    std::cout << "Received Selection Request\n";
-
     const XSelectionRequestEvent &request = event.xselectionrequest;
-
 /*
-    std::cout << "\twindow(" << (int)window << ")"
+    std::cout << "Received Selection Request\n"
+              << "\twindow(" << (int)window << ")"
               << " -> received selection request from:"
               << "\n\t\txselection.owner(" << (int)request.owner << ")"
               << "\n\t\txselection.requestor("

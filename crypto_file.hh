@@ -265,8 +265,10 @@ libaan::crypto::file::crypto_file::write(
         return INTERNAL_CIPHER_ERROR;
     }
 
-    // write buffers to file
-    std::ofstream fp(filename, std::ios_base::out | std::ios_base::binary);
+    // write buffers to file. binary mode to avoid problems with different line
+    // endings under windows. truncate mode to overwrite the file everytime.
+    std::ofstream fp(filename, std::ios_base::out | std::ios_base::binary
+                               | std::ios_base::trunc);
     char *begin = &*file_header.begin();
     fp.write(begin, file_header.length());
     begin = &*encrypted_file.begin();

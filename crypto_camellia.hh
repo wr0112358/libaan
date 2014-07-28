@@ -236,7 +236,7 @@ inline bool libaan::crypto::camellia::camellia_256::generate_key(
     return true; 
 }
 
-inline bool libaan::crypto::camelia::camellia_256::new_random_iv()
+inline bool libaan::crypto::camellia::camellia_256::new_random_iv()
 {
    if(!read_random_bytes(BLOCK_SIZE, iv)) {// iv with block size
         std::cout << "read from /dev/random failed\n";
@@ -286,6 +286,11 @@ inline bool libaan::crypto::camellia::camellia_256::encrypt(
     if(!generate_key(pw, key))
         return false;
 
+    if(!plain.length()) {
+        cipher.resize(0);
+        std::cerr << "camellia_256::encrypt: skipping encryption. empty input.\n";
+        return true;
+    }
     EVP_CIPHER_CTX ctx;
     if(!EVP_EncryptInit(&ctx, EVP_camellia_256_cbc(),
                         reinterpret_cast<unsigned char *>(&key[0]),
@@ -295,6 +300,7 @@ inline bool libaan::crypto::camellia::camellia_256::encrypt(
     }
 
     cipher.resize(plain.length() + BLOCK_SIZE);
+
     bool ret = do_encrypt(&ctx, plain, cipher);
 
     return ret;
@@ -310,11 +316,17 @@ inline bool libaan::crypto::camellia::camellia_256::decrypt(
     if(!generate_key(pw, key))
         return false;
 
+    if(!cipher.length()) {
+        plain.resize(0);
+        std::cerr << "camellia_256::decrypt: skipping decryption. empty input.\n";
+        return true;
+    }
+
     EVP_CIPHER_CTX ctx;
     if(!EVP_DecryptInit(&ctx, EVP_camellia_256_cbc(),
                         reinterpret_cast<unsigned char *>(&key[0]),
                         reinterpret_cast<unsigned char *>(&iv[0]))) {
-        std::cout << "EVP_EncryptInit failed\n";
+        std::cout << "EVP_DecryptInit failed\n";
         return false;
     }
     plain.resize(cipher.length() + BLOCK_SIZE + 1);

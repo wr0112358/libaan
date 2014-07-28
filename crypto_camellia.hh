@@ -48,6 +48,7 @@ public:
     bool decrypt(const std::string &pw, const std::string &cipher,
                  std::string &plain);
 
+    bool new_random_iv();
 private:
     bool generate_key(const std::string &pw, std::string &key);
     bool do_encrypt(EVP_CIPHER_CTX *ctx, const std::string &plain_in,
@@ -235,6 +236,15 @@ inline bool libaan::crypto::camellia::camellia_256::generate_key(
     return true; 
 }
 
+inline bool libaan::crypto::camelia::camellia_256::new_random_iv()
+{
+   if(!read_random_bytes(BLOCK_SIZE, iv)) {// iv with block size
+        std::cout << "read from /dev/random failed\n";
+        return false;
+    }
+    return true;
+}
+
 inline bool libaan::crypto::camellia::camellia_256::init()
 {
     if(!read_random_bytes(16, salt)) {// 128 bit salt
@@ -242,11 +252,7 @@ inline bool libaan::crypto::camellia::camellia_256::init()
         return false;
     }
 
-    if(!read_random_bytes(BLOCK_SIZE, iv)) {// iv with block size
-        std::cout << "read from /dev/random failed\n";
-        return false;
-    }
-    return true;
+    return new_random_iv();
 }
 
 inline bool
@@ -272,6 +278,7 @@ libaan::crypto::camellia::camellia_256::init(const std::string &existing_salt,
 inline bool libaan::crypto::camellia::camellia_256::encrypt(
     const std::string &pw, const std::string &plain, std::string &cipher)
 {
+    // TODO: get new iv at this point? or provide api extension?
     if(iv.length() != BLOCK_SIZE)
         return false;
 

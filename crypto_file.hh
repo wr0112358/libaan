@@ -249,12 +249,17 @@ inline libaan::crypto::file::crypto_file::error_type
 libaan::crypto::file::crypto_file::write(
     const std::string &password)
 {
-    build_header_from_buffers();
     camellia::camellia_256 cipher;
     if(!cipher.init(salt, iv)) {
         std::cerr << "crypto_file::read: cipher.init() failed.\n";
         return INTERNAL_CIPHER_ERROR;
     }
+
+    if(!cipher.new_random_iv())
+        return INTERNAL_CIPHER_ERROR;
+    iv = cipher.iv;
+
+    build_header_from_buffers();
     if(!cipher.encrypt(password, decrypted_buffer, encrypted_file)) {
         std::cerr << "crypto_file::write(): camellia_256::encrypt() failed\n";
         return INTERNAL_CIPHER_ERROR;

@@ -29,13 +29,11 @@ namespace libaan
 {
 namespace util
 {
-// a better aproach using a writeable input string:
-// - replace first char of every delim with '\0'
-// - save pointer to first char of everytoken in vector<char *>
-// or with non writeable input:
-// - save pointer to first char of every token together with string length in
-//   vector<pair<char *, int> >
-// need to test the timings
+
+using string_type = std::pair<const char *, size_t>;
+
+// a more performant aproach is split2 which avoids copies.
+// for timings: test/test_string_util.cc
 inline std::vector<std::string> split(const std::string &input,
                                       const std::string &delim)
 {
@@ -56,10 +54,10 @@ inline std::vector<std::string> split(const std::string &input,
     return tokens;
 }
 
-inline std::vector<std::pair<const char *, size_t> >
+inline std::vector<string_type>
 split2(const std::string &input, const std::string &delim)
 {
-    std::vector<std::pair<const char *, size_t> > tokens;
+    std::vector<string_type> tokens;
     std::string::size_type start = 0;
     std::string::size_type end;
 
@@ -81,7 +79,27 @@ split2(const std::string &input, const std::string &delim)
     return tokens;
 }
 
+/*
+string_type find(const string_type &haystack, const std::string &needle)
+{
+    // equal to std::end(*haystack) ? need to test
+    const auto end = haystack.first + haystack.second
+    const auto found = std::search(haystack.first, end,
+                       std::begin(needle), std::end(needle));
+    return found;
+}
+
+// split an input string_type provided by a previous split
+inline std::vector<string_type>
+split2(const string_type &input, const std::string &delim)
+{
+// TODO
+}
+*/
+
 #ifdef TOTAL_REGEX_OVERLOAD
+// no working implementation available(?). programming against the standard
+// is no fun.
 /* example usage:
     const std::string path = "/proc/" + std::to_string(pid) + "/environ";
     std::string file_buffer;

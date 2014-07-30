@@ -104,21 +104,30 @@ rawmode::rawmode(int fileno)
 #endif
 {
 #ifndef NO_GOOD
+#if 1
     tcgetattr(0,&oldtermios);
     newtermios = oldtermios;
-    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~ICANON);
-    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~ECHO);
-    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~ISIG);
+//    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ICANON | ECHO | ISIG));
+    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ICANON | ECHO));
+    // VMIN > 0, VTIME == 0: read(wanted_bytes = n) blocks until
+    //                       std::min(VMIN, n) bytes are available
     newtermios.c_cc[VMIN] = 1;
     newtermios.c_cc[VTIME] = 0;
     tcsetattr(0, TCSANOW, &newtermios);
+#else
+    tty_raw(true);
+#endif
 #endif
 }
 
 rawmode::~rawmode()
 {
 #ifndef NO_GOOD
+#if 0
     tcsetattr(0, TCSANOW, &oldtermios);
+#else
+    tty_raw(false);
+#endif
 #endif
 }
 
@@ -130,6 +139,8 @@ bool rawmode::kbhit()
 
     if(peek != -1)
         return false;
+
+    // Emulate kbhit by setting min to 0, read does not block.
     newtermios.c_cc[VMIN] = 0;
     tcsetattr(0, TCSANOW, &newtermios);
     nread = read(0, &ch, 1);
@@ -191,38 +202,31 @@ inline bool rawmode::tty_raw(bool on)
         return false;
     newtermios = oldtermios;
 
+    // If IEXTEN is on, the DISCARD character is recognized and is not passed to
+    // the process. This character causes output to be suspended until another
+    // DISCARD is received. The DSUSP character for job control, the LNEXT
+    // character that removes any special meaning of the following character,
+    // the REPRINT character, and some others are also in this category.
     newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ECHO | ICANON | IEXTEN | ISIG));
-    /* OK, why IEXTEN? If IEXTEN is on, the DISCARD character
-       is recognized and is not passed to the process. This 
-       character causes output to be suspended until another
-       DISCARD is received. The DSUSP character for job control,
-       the LNEXT character that removes any special meaning of
-       the following character, the REPRINT character, and some
-       others are also in this category.
-    */
 
+    // If an input character arrives with the wrong parity, then INPCK
+    // is checked. If this flag is set, then IGNPAR is checked
+    // to see if input bytes with parity errors should be ignored.
+    // If it shouldn't be ignored, then PARMRK determines what
+    // character sequence the process will actually see.
+    // Turn off IXON, so start and stop characters can be read.
     newtermios.c_iflag &= static_cast<decltype(newtermios.c_iflag)>(
         ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON));
-    /* If an input character arrives with the wrong parity, then INPCK
-       is checked. If this flag is set, then IGNPAR is checked
-       to see if input bytes with parity errors should be ignored.
-       If it shouldn't be ignored, then PARMRK determines what
-       character sequence the process will actually see.
 
-       When we turn off IXON, the start and stop characters can be read.
-    */
-
+    // CSIZE is a mask that determines the number of bits per byte.
+    // PARENB enables parity checking on input and parity generation
+    // on output.
     newtermios.c_cflag &= static_cast<decltype(newtermios.c_cflag)>(~(CSIZE | PARENB));
-    /* CSIZE is a mask that determines the number of bits per byte.
-       PARENB enables parity checking on input and parity generation
-       on output.
-    */
 
+    // 8 bits per character.
     newtermios.c_cflag |= CS8;
-    /* Set 8 bits per character. */
-
+    // This includes things like expanding tabs to spaces.
     newtermios.c_oflag &= static_cast<decltype(newtermios.c_oflag)>(~(OPOST));
-    /* This includes things like expanding tabs to spaces. */
 
     newtermios.c_cc[VMIN] = 1;
     newtermios.c_cc[VTIME] = 0;

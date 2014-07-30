@@ -1,16 +1,9 @@
-#include "libaan/crypto_camellia.hh"
-#include "libaan/crypto_pbkdf2_pkcs5.hh"
-#include "libaan/file_util.hh"
+#include "../crypto_camellia.hh"
+#include "../crypto_pbkdf2_pkcs5.hh"
+#include "../file_util.hh"
 
 #include <iomanip>
 #include <iostream>
-
-bool read_random_bytes(size_t count, std::string & bytes)
-{
-	std::ifstream f("/dev/random");
-	f.read(&bytes[0], count);
-	return true;
-}
 
 std::string create_pw(const std::string &ascii_set, std::size_t count)
 {
@@ -34,7 +27,7 @@ void create_pws()
     for(int j = 6; j < 13; j++) {
         std::cout << "length = " << j << "\n";
         for(int i = 0; i < 4; i++)
-            std::cout << c(set, j) << "\n";
+            std::cout << create_pw(set, j) << "\n";
         std::cout << "\n";
     }
 }

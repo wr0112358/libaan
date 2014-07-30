@@ -4,3 +4,5 @@ test/crypto_util_test
 test/crypto_util_test_camellia
 test/test_string_util
 test/crypto_file_test
+test/test_string_suffix_search
+test/test_string_suffix_search_dc3

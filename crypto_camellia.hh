@@ -26,6 +26,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace libaan {
 namespace crypto {
+bool read_random_bytes(size_t count, std::string &bytes);
+bool read_random_ascii_set(size_t count, const std::string &set,
+                           std::string &bytes);
 namespace camellia {
 
 // De-/Encryption of variable length strings with camellia block cipher in
@@ -97,7 +100,7 @@ inline void hex(const std::string &s, const std::string &prefix = "",
 }
 */
 
-inline bool read_random_bytes(size_t count, std::string & bytes)
+inline bool libaan::crypto::read_random_bytes(size_t count, std::string & bytes)
 {
     bytes.resize(count);
 
@@ -105,11 +108,42 @@ inline bool read_random_bytes(size_t count, std::string & bytes)
     const std::string REAL_RANDOM_NUMBERS = "/dev/random";
     const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
 
-    std::ifstream f(PSEUDO_RANDOM_NUMBERS,
+    std::ifstream f(REAL_RANDOM_NUMBERS,
                     std::ios_base::in | std::ios_base::binary);
     f.read(&bytes[0], count);
     return f;
 #else
+
+    std::fill(bytes.begin(), bytes.end(), 0);
+    // TODO:
+    // http://msdn.microsoft.com/en-us/library/aa382048.aspx
+    // http://msdn.microsoft.com/en-us/library/aa379942.aspx
+    return true;
+#endif
+}
+
+inline bool libaan::crypto::read_random_ascii_set(size_t count,
+                                                  const std::string &set,
+                                                  std::string &bytes)
+{
+    bytes.resize(count);
+
+#ifndef NO_GOOD
+    const std::string REAL_RANDOM_NUMBERS = "/dev/random";
+    const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
+
+    // pseudo random good enough for password?
+    std::ifstream f(PSEUDO_RANDOM_NUMBERS,
+                    std::ios_base::in | std::ios_base::binary);
+    std::size_t read = 0;
+    do {
+        f.read(&bytes[read], 1);
+        if(set.find(bytes[read]) != std::string::npos)
+           read++;
+    } while(read < count);
+    return f;
+#else
+
     std::fill(bytes.begin(), bytes.end(), 0);
     // TODO:
     // http://msdn.microsoft.com/en-us/library/aa382048.aspx

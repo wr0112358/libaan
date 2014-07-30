@@ -1,3 +1,4 @@
+#include "libaan/crypto_camellia.hh"
 #include "libaan/crypto_pbkdf2_pkcs5.hh"
 #include "libaan/file_util.hh"
 
@@ -9,6 +10,33 @@ bool read_random_bytes(size_t count, std::string & bytes)
 	std::ifstream f("/dev/random");
 	f.read(&bytes[0], count);
 	return true;
+}
+
+std::string create_pw(const std::string &ascii_set, std::size_t count)
+{
+    std::string pw;
+    pw.resize(count);
+    if(!libaan::crypto::read_random_ascii_set(count, ascii_set, pw)) {
+        std::cerr << "Error creating a password from random data. Aborting.\n";
+        return "error";
+    }
+    return pw;
+}
+
+void create_pws()
+{
+    std::cout << "Creating test pws with pseudo rng data:\n";
+    std::string set;
+    for(int i = 0; i < 255; i++)
+        if(isprint(i))
+            set.push_back(char(i));
+
+    for(int j = 6; j < 13; j++) {
+        std::cout << "length = " << j << "\n";
+        for(int i = 0; i < 4; i++)
+            std::cout << c(set, j) << "\n";
+        std::cout << "\n";
+    }
 }
 
 void hex(const std::string & s)

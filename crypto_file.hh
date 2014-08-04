@@ -200,7 +200,7 @@ libaan::crypto::file::crypto_file::read(
 
     camellia::camellia_256 cipher;
     std::ifstream fp(filename, std::ios_base::in | std::ios_base::binary);
-    total_file_length = util::file::get_file_length(fp);
+    total_file_length = libaan::util::file::get_file_length(fp);
 
     if (total_file_length < HEADER_SIZE) {
         // No header/empty file. Create new header.

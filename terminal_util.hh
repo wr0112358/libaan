@@ -37,6 +37,8 @@ struct winsize {
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <sys/signalfd.h>
+#include <fcntl.h>
+//#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <termios.h>
@@ -73,87 +75,133 @@ class terminal
     int sigwinch_fd;
 };
 
-
-/* http://stackoverflow.com/questions/1513734/problem-with-kbhitand-getch-for-linux */
-/* http://linux-sxs.org/programming/kbhit.html */
-
 class rawmode {
  public:
-    rawmode(int fileno = STDIN_FILENO);
+    rawmode();
     ~rawmode();
 
+    // Is a character available from stdin?
+    // Does the following:
+    // - try to read one character without blocking
+    // - if succesfull it stores the read character for later non-blocking reads
+    //   via getch and return true
+    // - else return false
     bool kbhit();
+    // Return one character without blocking, if a prepended call to kbhit
+    // returned true. Else do a blocking read.
     int getch();
 
+    operator bool() const { return state; }
+
  private:
-    bool tty_raw(bool on);
-    bool tty_reset();
+    bool save_termios();
+    bool restore_termios();
 
 #ifndef NO_GOOD
  private:
     struct termios oldtermios;
-    struct termios newtermios;
-    int fd;
-    int peek;
+    bool state;
 #endif
 };
 
-rawmode::rawmode(int fileno)
-#ifndef NO_GOOD
-        : fd(fileno), peek(-1)
-#endif
+rawmode::rawmode()
 {
+    state = false;
+
 #ifndef NO_GOOD
-#if 1
-    tcgetattr(0,&oldtermios);
-    newtermios = oldtermios;
-//    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ICANON | ECHO | ISIG));
-    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ICANON | ECHO));
-    // VMIN > 0, VTIME == 0: read(wanted_bytes = n) blocks until
-    //                       std::min(VMIN, n) bytes are available
-    newtermios.c_cc[VMIN] = 1;
-    newtermios.c_cc[VTIME] = 0;
-    tcsetattr(0, TCSANOW, &newtermios);
-#else
-    tty_raw(true);
-#endif
+    if(!save_termios())
+        return;
+    struct termios tty;
+    if(tcgetattr(STDIN_FILENO, &tty) < 0) {
+        fprintf(stderr, "\nERROR:  unable to get tty attributes for %s\n",
+                ctermid(NULL));
+        return;
+    }
+
+    // no input flags needed
+    tty.c_iflag = 0x0000;
+    tty.c_oflag = ONLCR | OPOST;
+    tty.c_cflag = CREAD | CSIZE;
+    // noncanonical mode, since no ICANON
+    tty.c_lflag = IEXTEN;
+    tty.c_cc[VERASE] = 0x7F;
+
+    if(tcsetattr(STDIN_FILENO, TCSANOW, &tty) < 0) {
+        fprintf(stderr, "\nERROR:  unable to set tty attributes for %s\n",
+                ctermid(NULL));
+        return;
+    }
+
+    state = true;
 #endif
 }
 
 rawmode::~rawmode()
 {
 #ifndef NO_GOOD
-#if 0
-    tcsetattr(0, TCSANOW, &oldtermios);
-#else
-    tty_raw(false);
+    restore_termios();
 #endif
+}
+
+bool rawmode::save_termios()
+{
+#ifdef NO_GOOD
+    return false;
+#else
+    int fd = open(ctermid(NULL), O_RDONLY);
+    if(fd == -1)
+        return false;
+
+    if(tcgetattr(fd, &oldtermios) == -1) {
+        close(fd);
+        return false;
+    }
+    close(fd);
+
+    return true;
+#endif
+
+}
+
+bool rawmode::restore_termios()
+{
+#ifdef NO_GOOD
+    return false;
+#else
+    int fd = open(ctermid(NULL), O_RDWR);
+    if(fd == -1)
+        return false;
+    if(tcsetattr(fd, TCSANOW, &oldtermios) == -1)
+        return false;
+    close(fd);
+
+    return true;
 #endif
 }
 
 bool rawmode::kbhit()
 {
 #ifndef NO_GOOD
-    unsigned char ch;
-    ssize_t nread;
+    struct timeval tvptr;
+    fd_set rset;
+    int status = -1;
 
-    if(peek != -1)
+    // no blocking
+    tvptr.tv_sec = 0;
+    tvptr.tv_usec = 0;
+    FD_ZERO(&rset);
+
+    FD_SET(STDIN_FILENO, &rset);
+    status = select(STDIN_FILENO + 1, &rset, NULL, NULL, &tvptr);
+    if(status == -1) {
+        fprintf(stderr, "\nERROR:  dataready():  select() returned -1\n");
         return false;
-
-    // Emulate kbhit by setting min to 0, read does not block.
-    newtermios.c_cc[VMIN] = 0;
-    tcsetattr(0, TCSANOW, &newtermios);
-    nread = read(0, &ch, 1);
-    newtermios.c_cc[VMIN] = 1;
-    tcsetattr(0, TCSANOW, &newtermios);
-
-    if(nread == 1) {
-        peek = ch;
-        return true;
     }
 
-    return false;
+    if(!FD_ISSET(STDIN_FILENO, &rset))
+        return false;
 
+    return true;
 #else
     return kbhit();
 #endif
@@ -163,92 +211,14 @@ int rawmode::getch()
 {
 #ifndef NO_GOOD
     char ch;
-
-    if (peek != -1) {
-        ch = static_cast<char>(peek);
-        peek = -1;
-    } else
-        read(0, &ch, 1);
-
+    if(read(STDIN_FILENO, &ch, 1) != 1) {
+        state = false;
+        puts("read() != 1");
+        return 0;
+    }
     return ch;
 #else
     return getch();
-#endif
-}
-
-inline bool rawmode::tty_raw(bool on)
-{
-#ifndef NO_GOOD
-    if(!on)
-        return tty_reset();
-
-    /* Set terminal mode as follows:
-       Noncanonical mode - turn off ICANON.
-       Turn off signal-generation (ISIG)
-        including BREAK character (BRKINT).
-       Turn off any possible preprocessing of input (IEXTEN).
-       Turn ECHO mode off.
-       Disable CR-to-NL mapping on input.
-       Disable input parity detection (INPCK).
-       Disable stripping of eighth bit on input (ISTRIP).
-       Disable flow control (IXON).
-       Use eight bit characters (CS8).
-       Disable parity checking (PARENB).
-       Disable any implementation-dependent output processing (OPOST).
-       One byte at a time input (MIN=1, TIME=0).
-    */
-
-    if(tcgetattr(fd, &oldtermios) < 0)
-        return false;
-    newtermios = oldtermios;
-
-    // If IEXTEN is on, the DISCARD character is recognized and is not passed to
-    // the process. This character causes output to be suspended until another
-    // DISCARD is received. The DSUSP character for job control, the LNEXT
-    // character that removes any special meaning of the following character,
-    // the REPRINT character, and some others are also in this category.
-    newtermios.c_lflag &= static_cast<decltype(newtermios.c_lflag)>(~(ECHO | ICANON | IEXTEN | ISIG));
-
-    // If an input character arrives with the wrong parity, then INPCK
-    // is checked. If this flag is set, then IGNPAR is checked
-    // to see if input bytes with parity errors should be ignored.
-    // If it shouldn't be ignored, then PARMRK determines what
-    // character sequence the process will actually see.
-    // Turn off IXON, so start and stop characters can be read.
-    newtermios.c_iflag &= static_cast<decltype(newtermios.c_iflag)>(
-        ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON));
-
-    // CSIZE is a mask that determines the number of bits per byte.
-    // PARENB enables parity checking on input and parity generation
-    // on output.
-    newtermios.c_cflag &= static_cast<decltype(newtermios.c_cflag)>(~(CSIZE | PARENB));
-
-    // 8 bits per character.
-    newtermios.c_cflag |= CS8;
-    // This includes things like expanding tabs to spaces.
-    newtermios.c_oflag &= static_cast<decltype(newtermios.c_oflag)>(~(OPOST));
-
-    newtermios.c_cc[VMIN] = 1;
-    newtermios.c_cc[VTIME] = 0;
-
-    /* You tell me why TCSAFLUSH. */
-    if(tcsetattr(fd, TCSAFLUSH, &newtermios) < 0)
-        return false;
-    return true;
-#else
-    return false;
-#endif
-}
-
-inline bool rawmode::tty_reset()
-{
-#ifndef NO_GOOD
-    if(tcsetattr(fd, TCSAFLUSH, &oldtermios) < 0)
-        return false;
-
-    return true;
-#else
-    return true;
 #endif
 }
 

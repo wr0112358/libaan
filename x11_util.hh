@@ -115,7 +115,6 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
                 XSendEvent(display, respond.requestor, False, 0L,
                            (XEvent *)&respond);
                 XFlush(display);
-                event_status = false;
             }
         }
     } while(!loop_done);

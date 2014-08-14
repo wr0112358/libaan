@@ -76,6 +76,31 @@ public:
 #include <iostream>
 #include <sstream>
 
+#ifdef NO_GOOD
+#include <windows.h>
+#include <wincrypt.h>
+
+inline std::string err_string(DWORD error)
+{
+    if (error == 0)
+        return "No Error.";
+
+    std::string buf;
+    buf.resize(256);
+
+    ::FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM, nullptr, error,
+                    MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
+                    reinterpret_cast<TCHAR *>(&buf[0]), buf.length(), nullptr);
+    return buf;
+}
+
+inline void win_err(const std::string &msg) {
+    const auto err = GetLastError();
+    std::cerr << "\"" << msg << "\"\n"
+              << "Error(" << err << "): " << err_string(err);
+}
+#endif
+
 /*
 inline void hex(const std::string &s, const std::string &prefix = "",
          size_t newline_after_doublenibbles = 24)
@@ -113,11 +138,33 @@ inline bool libaan::crypto::read_random_bytes(size_t count, std::string & bytes)
     f.read(&bytes[0], count);
     return f;
 #else
+    HCRYPTPROV hCryptProv;
+    // CRYPT_SILENT?
+    //    if(!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL,
+    //    0)) {
+    if(!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL,
+                            CRYPT_VERIFYCONTEXT)) {
+        // GetLastError() == ERROR_BUSY -> retry?
+        //  If ERROR_BUSY is a problem, creating a new key container and passing
+        //  it in pszContainer might solve the problem.
+        // GetLastError() == NTE_BAD_KEYSET
+        // might indicate missing access rights to the default key container ->
+        // create our own? See:
+        // http://msdn.microsoft.com/en-us/library/aa379886.aspx
+        win_err("CryptAcquireContext failed");
+        return false;
+    }
 
-    std::fill(bytes.begin(), bytes.end(), 0);
-    // TODO:
-    // http://msdn.microsoft.com/en-us/library/aa382048.aspx
-    // http://msdn.microsoft.com/en-us/library/aa379942.aspx
+    if(!CryptGenRandom(hCryptProv, count,
+                       reinterpret_cast<BYTE *>(&bytes[0]))) {
+        win_err("CryptGenRandom failed");
+        return false;
+    }
+    if(!CryptReleaseContext(hCryptProv, 0)) {
+        win_err("CryptReleaseContext failed");
+        return false;
+    }
+
     return true;
 #endif
 }
@@ -127,7 +174,8 @@ inline bool libaan::crypto::read_random_ascii_set(size_t count,
                                                   std::string &bytes)
 {
     bytes.resize(count);
-
+    // possible optimization: read more than one at a time and cache it.
+    // windows: create context at program start and reuse it
 #ifndef NO_GOOD
     const std::string REAL_RANDOM_NUMBERS = "/dev/random";
     const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
@@ -139,15 +187,41 @@ inline bool libaan::crypto::read_random_ascii_set(size_t count,
     do {
         f.read(&bytes[read], 1);
         if(set.find(bytes[read]) != std::string::npos)
-           read++;
+            read++;
     } while(read < count);
     return f;
 #else
+    HCRYPTPROV hCryptProv;
+    if(!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL,
+                            CRYPT_VERIFYCONTEXT)) {
+        // GetLastError() == ERROR_BUSY -> retry?
+        //  If ERROR_BUSY is a problem, creating a new key container and passing
+        //  it in pszContainer might solve the problem.
+        // GetLastError() == NTE_BAD_KEYSET
+        // might indicate missing access rights to the default key container ->
+        // create our own? See:
+        // http://msdn.microsoft.com/en-us/library/aa379886.aspx
+        win_err("CryptAcquireContext failed");
+        return false;
+    }
 
-    std::fill(bytes.begin(), bytes.end(), 0);
-    // TODO:
-    // http://msdn.microsoft.com/en-us/library/aa382048.aspx
-    // http://msdn.microsoft.com/en-us/library/aa379942.aspx
+    std::size_t read = 0;
+    do {
+        if(!CryptGenRandom(hCryptProv, 1,
+                           reinterpret_cast<BYTE *>(&bytes[read]))) {
+            win_err("CryptGenRandom failed");
+            return false;
+        }
+
+        if(set.find(bytes[read]) != std::string::npos)
+            read++;
+    } while(read < count);
+
+    if(!CryptReleaseContext(hCryptProv, 0)) {
+        win_err("CryptReleaseContext failed");
+        return false;
+    }
+
     return true;
 #endif
 }

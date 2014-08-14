@@ -105,9 +105,7 @@ public:
         case CIPHER_ERROR_FILE_LENGTH: return "CIPHER_ERROR_FILE_LENGTH";
         case INTERNAL_CIPHER_ERROR: return "INTERNAL_CIPHER_ERROR";
         }
-#ifdef NO_GOOD
         return "UNKNOWN ERROR";
-#endif
     }
     bool read_and_parse_old_version_0010(const std::string &password);
 

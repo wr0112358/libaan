@@ -1,6 +1,6 @@
 include ../Makefile.in
 
-test: test_x11_util crypto_file_test crypto_util_test crypto_util_test_camellia test_terminal test_string_util test_string_suffix_search test_string_suffix_search_dc3 crypto_hash_test
+test: test_x11_util crypto_file_test crypto_util_test crypto_util_test_camellia test_terminal test_string_util test_string_suffix_search test_string_suffix_search_dc3 crypto_hash_test convert_crypto_file_0010to0020
 #crypto_util_test_lion 
 
 test_x11_util: test_x11_util.cc
@@ -23,6 +23,9 @@ test_string_util: test_string_util.cc
 	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@
 
 crypto_file_test: crypto_file_test.cc
+	$(CXX) $(CXX_FLAGS) -lssl -lcrypto $^ -o $@
+
+convert_crypto_file_0010to0020: convert_crypto_file_0010to0020.cc
 	$(CXX) $(CXX_FLAGS) -lssl -lcrypto $^ -o $@
 
 test_string_suffix_search: test_string_suffix_search.cc ../string_suffix_search.cc ../string_suffix_search_dc3_internal.cc

@@ -67,6 +67,40 @@ to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
         return "";
     return std::string(mbstr);
 }
+
+inline std::string storable_time_point(
+    const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
+{
+    const int64_t time_int = htobe64(t.time_since_epoch().count());
+    std::string time_string(8, 0);
+    time_string[0] = (time_int >> 24) & 0xFF;
+    time_string[1] = (time_int >> 16) & 0xFF;
+    time_string[2] = (time_int >> 8) & 0xFF;
+    time_string[3] = time_int & 0xFF;
+    return time_string;
+}
+
+inline const std::chrono::time_point<std::chrono::high_resolution_clock>
+storable_time_point(const std::string &t)
+{
+    int64_t time = 0;
+    if(t.length() == sizeof(int64_t)) {
+        // network byte order to host byte order
+        time = (t[0] << 24) + (t[1] << 16) + (t[2] << 8) + t[3];
+        time = be64toh(time);
+    }
+
+    const std::chrono::duration<int64_t>::rep rep(time);
+    const std::chrono::duration<int64_t> duration(rep);
+    const std::chrono::time_point<std::chrono::high_resolution_clock> timepoint(duration);
+    return timepoint;
+}
+
+inline std::string storable_time_point_now()
+{
+    return storable_time_point(std::chrono::high_resolution_clock::now());
+}
+
 }
 }
 

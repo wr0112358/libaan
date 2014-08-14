@@ -20,11 +20,15 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _LIBAAN_CRYPTO_HASH_HH_
 
 #include <openssl/evp.h>
+#include <openssl/sha.h>
 #include <string>
 
 namespace libaan {
 namespace crypto {
 class hash {
+public:
+    const static std::size_t SHA1_HASHLENGTH = SHA_DIGEST_LENGTH;
+
 public:
     hash()
     {
@@ -44,7 +48,6 @@ private:
 }
 
 #include <openssl/hmac.h>
-#include <openssl/sha.h>
 // https://groups.google.com/forum/#!topic/mailing.openssl.users/QjC9p14dOGI
 // https://www.openssl.org/docs/crypto/EVP_DigestInit.html#EXAMPLE
 inline bool libaan::crypto::hash::sha1(const std::string &in,
@@ -74,22 +77,16 @@ inline bool libaan::crypto::hash::do_hmac(const EVP_MD *md,
     HMAC_CTX ctx;
     HMAC_CTX_init(&ctx);
 
-    if(HMAC_Init_ex(&ctx, key.data(), key.length(), md, nullptr) != 1) {
-        std::cerr << "Error: HMAC_INIT_ex failed.\n";
+    if(HMAC_Init_ex(&ctx, key.data(), key.length(), md, nullptr) != 1)
         return false;
-    }
 
     if(HMAC_Update(&ctx, reinterpret_cast<const unsigned char *>(cipher_text_in.data()),
-                   cipher_text_in.length()) != 1) {
-        std::cerr << "Error: HMAC_Update failed.\n";
+                   cipher_text_in.length()) != 1)
         return false;
-    }
 
     unsigned int len = hmac_out.length();
-    if(HMAC_Final(&ctx, reinterpret_cast<unsigned char *>(&hmac_out[0]), &len) != 1) {
-        std::cerr << "Error: HMAC_Final failed.\n";
+    if(HMAC_Final(&ctx, reinterpret_cast<unsigned char *>(&hmac_out[0]), &len) != 1)
         return false;
-    }
     hmac_out.resize(len);
 
     HMAC_CTX_cleanup(&ctx);

@@ -17,9 +17,7 @@ Use
   Include repository as git submodule and directly reference .hh files.
 
 Missing
-  tests
-  unused/duplicated code should be removed or refactored.
-  replace namespace util with module namespace..
+  namespaces 
   .cc files
 
 

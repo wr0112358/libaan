@@ -1,5 +1,6 @@
 File encryption for small files that are rewritten completely when changed.
 
+VERSION 0010
 file format:
 64bytes unencrypted header
 variable number of camellia 256 encrypted blocks in cbc mode
@@ -10,7 +11,10 @@ header format:
 camelia256::saltsize byte salt
 camelia256::blocksize bytes iv
 size = 8 + 4 + 16 + 16 = 44
+
+TODO: VERSION 0020
 -> leaves exactly 20 bytes for sha1 HMAC. (TODO)
+-> 8 bytes for timestamp needed too
 
 camelia256::saltsize = 16
 camelia256::blocksize = 16
@@ -98,4 +102,5 @@ the MAC of each file"
     appended to file header, or in the encrypted ćontent. If it is in
     the file header, it must be included in hmac construction.
     Integrity is given when user is shown the time of last encryption
-    and checks if it is valid.
+    and checks if it is valid. Integrity is in this case only
+    verified after decryption. Authenticity before decryption.

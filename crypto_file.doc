@@ -9,7 +9,8 @@ header format:
 4 bytes version string
 camelia256::saltsize byte salt
 camelia256::blocksize bytes iv
-
+size = 8 + 4 + 16 + 16 = 44
+-> leaves exactly 20 bytes for sha1 HMAC. (TODO)
 
 camelia256::saltsize = 16
 camelia256::blocksize = 16
@@ -80,5 +81,21 @@ provide integrity with a MAC
   (for confidentiality), you also need to reliably detect hostile
   alterations. For that, you need a MAC. Assembling a MAC and
   encryption is tricky."
--> using GCM or EAX mode would make this unnecessary
+using GCM or EAX mode would make this unnecessary:
 http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
+
+http://security.stackexchange.com/a/20301
+"An HMAC by itself does not provide message integrity. It can be one
+of the components in a protocol that provides integrity.(...)One
+possible way to provide storage integrity in this scenario would be to
+include the file name and a version number as part of the data whose
+MAC is computed; Alice would need to remember the latest version
+number of each file so as to verify that she is not given stale
+data. Another way to ensure integrity would be for Alice to remember
+the MAC of each file"
+  - HMAC provides authenticity
+  - for integrity a version number/date of last encryption should be
+    appended to file header, or in the encrypted ćontent. If it is in
+    the file header, it must be included in hmac construction.
+    Integrity is given when user is shown the time of last encryption
+    and checks if it is valid.

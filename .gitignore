@@ -6,3 +6,4 @@ test/test_string_util
 test/crypto_file_test
 test/test_string_suffix_search
 test/test_string_suffix_search_dc3
+test/crypto_hash_test

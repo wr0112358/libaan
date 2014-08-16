@@ -19,8 +19,9 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifndef _LIBAAN_CRYPTO_FILE_HH_
 #define _LIBAAN_CRYPTO_FILE_HH_
 
-#include "file_util.hh"
+#include "chrono_util.hh"
 #include "crypto_camellia.hh"
+#include "file_util.hh"
 
 #include <fstream>
 
@@ -91,6 +92,18 @@ public:
         std::fill(encrypted_file.begin(), encrypted_file.end(), 0);
     }
 
+    // Return time of last write. should only be called, after a
+    // successfull read().
+    // Provides integrity: user must remember when he last modified
+    // the file. If the returned date fits and hmac was verified
+    // successfully for authenticity.
+    //std::chrono::time_point<std::chrono::high_resolution_clock>
+    std::string
+    time_of_last_write() const
+    {
+        return libaan::util::to_string(
+            libaan::util::storable_time_point(timestamp));
+    }
     // use this function to modify the decrypted buffer.
     std::string &get_decrypted_buffer() { return decrypted_buffer; }
     void set_dirty() { dirty = true; }
@@ -145,7 +158,6 @@ private:
 
 // Implementation
 
-#include "chrono_util.hh"
 #include "crypto_camellia.hh"
 #include "crypto_hash.hh"
 

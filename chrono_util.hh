@@ -20,6 +20,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _LIBAAN_CHRONO_UTIL_HH_
 
 #include <chrono>
+#include <string>
 
 #ifdef NO_GOOD
 #include <winsock2.h>
@@ -105,12 +106,17 @@ to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
 inline std::string storable_time_point(
     const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
 {
-    const int64_t time_int = htobe64(t.time_since_epoch().count());
+    using duration64_type = std::chrono::duration<int64_t>;
+    // without the cast to duration64_type, the timepoint cannot be reconstructed.
+    const auto t_count = std::chrono::duration_cast<duration64_type>(t.time_since_epoch()).count();
+    const int64_t time_int = htobe64(t_count);
+
     std::string time_string(8, 0);
-    time_string[0] = (time_int >> 24) & 0xFF;
-    time_string[1] = (time_int >> 16) & 0xFF;
-    time_string[2] = (time_int >> 8) & 0xFF;
-    time_string[3] = time_int & 0xFF;
+    std::copy(reinterpret_cast<char *>(const_cast<int64_t *>(&time_int)),
+              reinterpret_cast<char *>(const_cast<int64_t *>(&time_int))
+              + sizeof(int64_t),
+              &time_string[0]);
+
     return time_string;
 }
 
@@ -119,14 +125,15 @@ storable_time_point(const std::string &t)
 {
     int64_t time = 0;
     if(t.length() == sizeof(int64_t)) {
+        std::copy(&t[0], &t[0] + sizeof(int64_t), (char *)&time);
         // network byte order to host byte order
-        time = (t[0] << 24) + (t[1] << 16) + (t[2] << 8) + t[3];
         time = be64toh(time);
     }
 
     const std::chrono::duration<int64_t>::rep rep(time);
     const std::chrono::duration<int64_t> duration(rep);
     const std::chrono::time_point<std::chrono::high_resolution_clock> timepoint(duration);
+
     return timepoint;
 }
 

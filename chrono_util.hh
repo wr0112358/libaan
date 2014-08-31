@@ -93,13 +93,21 @@ using time_me_us = time_me<std::chrono::microseconds>;
 using time_me_ns = time_me<std::chrono::nanoseconds>;
 
 inline std::string
-to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
+to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t,
+          bool filename = true)
 {
     const auto ti = std::chrono::system_clock::to_time_t(t);
     char mbstr[100];
-    if(!std::strftime(mbstr, sizeof(mbstr), "%m.%d.%Y_%H.%M.%S",
-                      std::localtime(&ti)))
-        return "";
+    if(filename) {
+        if(!std::strftime(mbstr, sizeof(mbstr), "%m.%d.%Y_%H.%M.%S",
+                          std::localtime(&ti)))
+            return "";
+    } else {
+        if(!std::strftime(mbstr, sizeof(mbstr), "%m.%d.%Y %H:%M:%S",
+                          std::localtime(&ti)))
+            return "";
+    }
+
     return std::string(mbstr);
 }
 

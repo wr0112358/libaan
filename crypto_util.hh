@@ -24,6 +24,10 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #include <unistd.h>
 #include <string>
 
+#ifdef NO_GOOD
+#include <windows.h>
+#endif
+
 namespace libaan
 {
 namespace crypto

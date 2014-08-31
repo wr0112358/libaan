@@ -100,8 +100,8 @@ class rawmode {
 #ifndef NO_GOOD
  private:
     struct termios oldtermios;
-    bool state;
 #endif
+    bool state;
 };
 
 rawmode::rawmode()

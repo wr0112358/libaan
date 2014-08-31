@@ -102,10 +102,12 @@ public:
     time_of_last_write() const
     {
         return libaan::util::to_string(
-            libaan::util::storable_time_point(timestamp));
+            libaan::util::storable_time_point(timestamp), false);
     }
     // use this function to modify the decrypted buffer.
     std::string &get_decrypted_buffer() { return decrypted_buffer; }
+    const std::string &get_decrypted_buffer() const { return decrypted_buffer; }
+
     void set_dirty() { dirty = true; }
     bool is_dirty() const { return dirty; }
 

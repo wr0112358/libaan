@@ -21,6 +21,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 #include "chrono_util.hh"
 #include "crypto_camellia.hh"
+#include "crypto_hash.hh"
 #include "file_util.hh"
 
 #include <fstream>
@@ -153,6 +154,7 @@ private:
     const std::string filename;
     error_type last_error;
     const std::string version = VERSION_0020;
+    ssl_init init;
 };
 }
 }

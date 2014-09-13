@@ -26,6 +26,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
 namespace libaan {
 namespace crypto {
+bool read_random_bytes_noblock(size_t count, std::string & bytes);
 bool read_random_bytes(size_t count, std::string &bytes);
 bool read_random_ascii_set(size_t count, const std::string &set,
                            std::string &bytes);
@@ -125,6 +126,18 @@ inline void hex(const std::string &s, const std::string &prefix = "",
 }
 */
 
+#ifndef NO_GOOD
+inline bool libaan::crypto::read_random_bytes_noblock(size_t count, std::string & bytes)
+{
+    bytes.resize(count);
+
+    std::ifstream f("/dev/urandom",
+                    std::ios_base::in | std::ios_base::binary);
+    f.read(&bytes[0], count);
+    return !!f;
+}
+#endif
+
 inline bool libaan::crypto::read_random_bytes(size_t count, std::string & bytes)
 {
     bytes.resize(count);
@@ -136,7 +149,7 @@ inline bool libaan::crypto::read_random_bytes(size_t count, std::string & bytes)
     std::ifstream f(REAL_RANDOM_NUMBERS,
                     std::ios_base::in | std::ios_base::binary);
     f.read(&bytes[0], count);
-    return f;
+    return !!f;
 #else
     HCRYPTPROV hCryptProv;
     // CRYPT_SILENT?
@@ -189,7 +202,7 @@ inline bool libaan::crypto::read_random_ascii_set(size_t count,
         if(set.find(bytes[read]) != std::string::npos)
             read++;
     } while(read < count);
-    return f;
+    return !!f;
 #else
     HCRYPTPROV hCryptProv;
     if(!CryptAcquireContext(&hCryptProv, nullptr, nullptr, PROV_RSA_FULL,

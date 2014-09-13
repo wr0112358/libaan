@@ -22,6 +22,7 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #ifdef TOTAL_REGEX_OVERLOAD
 #include <regex>
 #endif
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -54,8 +55,14 @@ inline std::vector<std::string> split(const std::string &input,
     return tokens;
 }
 
+
+inline std::string tostring(const libaan::util::string_type &s)
+{
+    return std::string(s.first, s.first + s.second);
+}
+
 inline std::vector<string_type>
-split2(const std::string &input, const std::string &delim)
+split2(const std::string &input, const std::string &delim, bool skip_empty = false)
 {
     std::vector<string_type> tokens;
     std::string::size_type start = 0;
@@ -63,6 +70,10 @@ split2(const std::string &input, const std::string &delim)
 
     for(;;) {
         end = input.find(delim, start);
+        if(skip_empty && (end - start) == 0) {
+            start = end + delim.size();
+            continue;
+        }
 
         // We just copied the last token
         if(end == std::string::npos) {
@@ -79,6 +90,31 @@ split2(const std::string &input, const std::string &delim)
     return tokens;
 }
 
+// split an input string_type provided by a previous split
+inline std::vector<string_type>
+split2(const string_type &input, unsigned char delim, bool skip_empty = false)
+{
+    std::vector<string_type> ret;
+    const char *ptr = input.first;
+    size_t len = input.second;
+    do {
+        const char *found = reinterpret_cast<const char *>(std::memchr(ptr, delim, len));
+        if(!found || !(found + 1)) {
+            if(len || !skip_empty)
+                ret.push_back(std::make_pair(ptr, len));
+            return ret;
+        } else {
+            const auto tmp = found - ptr;
+            if(tmp || !skip_empty)
+                ret.push_back(std::make_pair(ptr, tmp));
+            ptr = ++found;
+            if(len)
+                len -= tmp ? tmp + 1 : 1;
+        }
+    } while(true);
+    return ret;
+}
+
 /*
 string_type find(const string_type &haystack, const std::string &needle)
 {
@@ -87,13 +123,6 @@ string_type find(const string_type &haystack, const std::string &needle)
     const auto found = std::search(haystack.first, end,
                        std::begin(needle), std::end(needle));
     return found;
-}
-
-// split an input string_type provided by a previous split
-inline std::vector<string_type>
-split2(const string_type &input, const std::string &delim)
-{
-// TODO
 }
 */
 

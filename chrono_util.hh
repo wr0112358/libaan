@@ -111,6 +111,13 @@ to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t,
     return std::string(mbstr);
 }
 
+inline std::string
+dura_to_string(const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
+{
+    const auto delta = t - std::chrono::high_resolution_clock::now();
+    return std::to_string(std::chrono::duration_cast<std::chrono::seconds>(delta).count()) + " s";;
+}
+
 inline std::string storable_time_point(
     const std::chrono::time_point<std::chrono::high_resolution_clock> &t)
 {

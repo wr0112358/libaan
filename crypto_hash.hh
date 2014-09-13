@@ -20,20 +20,36 @@ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 #define _LIBAAN_CRYPTO_HASH_HH_
 
 #include <openssl/evp.h>
+#include <openssl/hmac.h>
 #include <openssl/sha.h>
 #include <string>
 
 namespace libaan {
 namespace crypto {
+
+struct ssl_init {
+    ssl_init() { OpenSSL_add_all_algorithms(); }
+    ~ssl_init() { EVP_cleanup(); }
+};
+
+class hmac_incremental {
+public:
+    hmac_incremental(const std::string &key, std::string &hmac_out);
+    bool update(const std::string &cipher_text_in);
+    // hmac_out will be empty() on failure
+    ~hmac_incremental();
+
+    bool state{false};
+private:
+    HMAC_CTX ctx;
+    std::string &hmac_out;
+};
+
 class hash {
 public:
     const static std::size_t SHA1_HASHLENGTH = SHA_DIGEST_LENGTH;
 
 public:
-    hash()
-    {
-        OpenSSL_add_all_algorithms();
-    }
     bool sha1(const std::string &in, std::string &out) const;
     bool sha1_hmac(const std::string &cipher_text_in, const std::string &key,
                    std::string &hmac_out) const;
@@ -47,7 +63,6 @@ private:
 }
 }
 
-#include <openssl/hmac.h>
 // https://groups.google.com/forum/#!topic/mailing.openssl.users/QjC9p14dOGI
 // https://www.openssl.org/docs/crypto/EVP_DigestInit.html#EXAMPLE
 inline bool libaan::crypto::hash::sha1(const std::string &in,
@@ -66,6 +81,7 @@ inline bool libaan::crypto::hash::sha1_hmac(const std::string &cipher_text_in,
     hmac_out.resize(EVP_MAX_MD_SIZE);
     return do_hmac(EVP_sha1(), cipher_text_in, key, hmac_out);
 }
+
 inline bool libaan::crypto::hash::do_hmac(const EVP_MD *md,
                                           const std::string &cipher_text_in,
                                           const std::string &key,
@@ -114,6 +130,45 @@ inline bool libaan::crypto::hash::do_hash(const EVP_MD *md,
 
     out.resize(md_len);
 
+    return true;
+}
+
+inline libaan::crypto::hmac_incremental::hmac_incremental(
+    const std::string &key, std::string &hmac_out)
+    : hmac_out(hmac_out)
+{
+    hmac_out.resize(EVP_MAX_MD_SIZE);
+    HMAC_CTX_init(&ctx);
+
+    if(HMAC_Init_ex(&ctx, key.data(), key.length(), EVP_sha1(), nullptr) != 1)
+        return;
+    state = true;
+}
+
+inline libaan::crypto::hmac_incremental::~hmac_incremental()
+{
+    unsigned int len = hmac_out.length();
+    if(!state
+       || (HMAC_Final(&ctx, reinterpret_cast<unsigned char *>(&hmac_out[0]),
+                      &len) != 1))
+        hmac_out.resize(0);
+    else
+        hmac_out.resize(len);
+
+    HMAC_CTX_cleanup(&ctx);
+}
+
+inline bool libaan::crypto::hmac_incremental::update(
+    const std::string &cipher_text_in)
+{
+    if(!state
+       || HMAC_Update(&ctx, reinterpret_cast<const unsigned char *>
+                      (cipher_text_in.data()),
+                      cipher_text_in.length())
+       != 1) {
+        state = false;
+        return false;
+    }
     return true;
 }
 

@@ -14,8 +14,8 @@ tokenizer timings(349901 words):
 #include <tuple>
 #include <vector>
 
-#include "libaan/chrono_util.hh"
-#include "libaan/string_util.hh"
+#include "../chrono_util.hh"
+#include "../string_util.hh"
 
 inline size_t get_file_length(std::ifstream & fp)
 {
@@ -106,8 +106,39 @@ bool split_test_file(const std::string &path)
     return true;
 }
 
+
+void test(const std::string &str)
+{
+    std::cout << "\n###########################################\ntesting input: \"" << str << "\"\n";
+    const auto tokens = libaan::util::split2(str, " ", true);
+    if(!tokens.empty())
+        std::cout << "\ttokenized(\" \"):\n";
+    for(const auto &t: tokens)
+        std::cout << "\t\"" << libaan::util::tostring(t) << "\"\n";
+
+    for(const auto &t: tokens) {
+        const auto tokens2 = libaan::util::split2(t, ',', true);
+        if(!tokens2.empty())
+            std::cout << "\t\tttokenized(\",\"):\n";
+        for(const auto &it: tokens2)
+            std::cout << "\t\t\"" << libaan::util::tostring(it) << "\"\n";
+        if(!tokens2.empty())
+            std::cout <<  "\n";
+    }
+}
+
+
 int main(int, char *[])
 {
     split_test_file("words.test");
+
+    test("abc def geh,ijk lm,nop qrs,tuv,,,");
+    test(",,,");
+    test(",");
+    test("");
+    test(",,,a");
+    test("a,,,");
+    test(",,, ,,, ,,,");
+
     exit(EXIT_SUCCESS);
 }

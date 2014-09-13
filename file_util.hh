@@ -31,7 +31,8 @@ namespace util {
 namespace file
 {
 size_t get_file_length(std::ifstream &fp);
-bool read_file(const char *file_name, std::string &buff);
+size_t read_file(const char *file_name, std::string &buff,
+               size_t optional_max_buffer_size = 0);
 bool write_file(const char *file_name, const std::string &buff);
 
 #ifndef NO_GOOD
@@ -89,16 +90,24 @@ inline size_t libaan::util::file::get_file_length(std::ifstream & fp)
 // TODO: read_file for 0-length files eg procentries:
 //template<std::size_t buffer_size> bool read_file(const char *, std::string &)
 // TODO: read_file(const std::string &file_name, ...)
-inline bool libaan::util::file::read_file(const char *file_name,
-                                          std::string &buff)
+// Use optional_max_buffer_size argument to limit the amount of data read. Can
+// also be used for "virtual files" with size 0.
+// Usage example:
+// std::string file_buffer;
+// file_buffer.resize(read_file(path + "/proc/cmdline", file_buffer, 512));
+inline size_t libaan::util::file::read_file(const char *file_name,
+                                            std::string &buff,
+                                            size_t optional_max_buffer_size)
 {
     std::ifstream fp(file_name);
-    const size_t length = get_file_length(fp);
+    const size_t length = optional_max_buffer_size
+        ? optional_max_buffer_size
+        : get_file_length(fp);
     buff.resize(length);
     char *begin = &*buff.begin();
     fp.read(begin, length);
 
-    return true;
+    return fp.gcount();
 }
 
 inline bool libaan::util::file::write_file(const char *file_name,
@@ -150,7 +159,6 @@ inline std::error_code libaan::util::file::dir::readdir(
         return std::system_error(errno, std::system_category()).code();
 
     // calculate size for readdir
-    // TODO: cache this?
     size_t size;
     {
         const auto errno_backup = errno;

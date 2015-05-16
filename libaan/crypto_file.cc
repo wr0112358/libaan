@@ -1,171 +1,101 @@
-/*
-Copyright (C) 2014 Reiter Wolfgang wr0112358@gmail.com
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
-
-#ifndef _LIBAAN_CRYPTO_FILE_HH_
-#define _LIBAAN_CRYPTO_FILE_HH_
-
-#include "chrono_util.hh"
-#include "crypto_camellia.hh"
-#include "crypto_hash.hh"
-#include "file_util.hh"
+#include "crypto_file.hh"
+#include "crypto.hh"
+#include "file.hh"
+#include "time.hh"
 
 #include <fstream>
 
-namespace libaan {
-namespace crypto {
-namespace file {
-
-const size_t HEADER_SIZE = 128;
-const std::string MAGIC = {'\x13', '\x12', '\x11', '\x13'};
-// VERSION_0010:
-//   HEADER_SIZE = 64
-const size_t OLD_HEADER_SIZE_0010 = 64;
-const std::string OLD_MAGIC_0010 = {'\x13', '\x13', '\x13', '\x13',
-                                    '\x13', '\x13', '\x13', '\x13'};
-const std::string VERSION_0010 = {'\x0', '\x0', '\x1', '\x0'};
-// VERSION_0020:
-//   reduce size of magic number and use a value, that makes sense
-//   add hmac to unencrypted header.
-//   add timestamp to unencrypted header.
-//   HEADER_SIZE = 128
-const std::string VERSION_0020 = {'\x0', '\x0', '\x2', '\x0'};
-
-class crypto_file
-{
-public:
-    enum error_type {
-#ifdef NO_GOOD
-    #undef NO_ERROR
-#endif
-        NO_ERROR,
-        NO_HEADER_IN_FILE,
-        CIPHER_ERROR_FILE_LENGTH,
-        INTERNAL_CIPHER_ERROR
-        // NO_SUCH_KEY if decrypt fails
-        // HMAC_FAILED if authenticity check fails
-    };
+#include <iostream> // TODO: kill this
 
 /*
-TODO
-- memset(0) before/after use
-- mlock on decrypted string buffer?
-- de/serialization:
-  when writing convert all non-ascii/not-byte-array header elements to network byte order
-  when reading convert them back to host byte order
+
+
+Questions:
+Is it ok to reuse the iv?
+   No.
+-> http://en.wikipedia.org/wiki/Block_cipher_modes_of_operation#Initialization_vector_.28IV.29
+   "...in most cases, it is important that an initialization vector is
+   never reused under the same key.
+   For CBC and CFB, reusing an IV leaks some information about the
+   first block of plaintext, and about any common prefix shared by the
+   two messages.
+   For OFB and CTR, reusing an IV completely destroys security.[6]
+   This can be seen because both modes effectively create a bitstream
+   that is XORed with the plaintext, and this bitstream is dependent
+   on the password and IV only.
+   Reusing a bitstream destroys security.[8] In CBC mode, the IV must,
+   in addition, be unpredictable at encryption time; in particular,
+   the (previously) common practice of re-using the last ciphertext
+   block of a message as the IV for the next message is insecure (for
+   example, this method was used by SSL 2.0).
+   If an attacker knows the IV (or the previous block of ciphertext)
+   before he specifies the next plaintext, he can check his guess
+   about plaintext of some block that was encrypted with the same key
+   before (this is known as the TLS CBC IV attack)."
+
+Is it ok to reuse the salt?
+
+
+Possible improvements:
+Generate master_key with pbkdf2_pkcs5 alorithm using stored constant salt+password as input.
+salt can be reused.
+-> how to get unique iv from this master_key?
+http://security.stackexchange.com/a/31544
+http://security.stackexchange.com/a/31542
+
+Use a different cpher mode like GCM or EAX: IV can be a counter, no padding necessary.
+-> would make file protocoll/io easier.
+-> openssl support?
+http://security.stackexchange.com/a/49034
+
+provide integrity with a MAC
+  "CBC does not ensure integrity. Usually, when you need to encrypt
+  (for confidentiality), you also need to reliably detect hostile
+  alterations. For that, you need a MAC. Assembling a MAC and
+  encryption is tricky."
+using GCM or EAX mode would make this unnecessary:
+http://crypto.stackexchange.com/questions/202/should-we-mac-then-encrypt-or-encrypt-then-mac
+
+http://security.stackexchange.com/a/20301
+"An HMAC by itself does not provide message integrity. It can be one
+of the components in a protocol that provides integrity.(...)One
+possible way to provide storage integrity in this scenario would be to
+include the file name and a version number as part of the data whose
+MAC is computed; Alice would need to remember the latest version
+number of each file so as to verify that she is not given stale
+data. Another way to ensure integrity would be for Alice to remember
+the MAC of each file"
+  - HMAC provides authenticity
+  - for integrity a version number/date of last encryption should be
+    appended to file header, or in the encrypted ćontent. If it is in
+    the file header, it must be included in hmac construction.
+    Integrity is given when user is shown the time of last encryption
+    and checks if it is valid. Integrity is in this case only
+    verified after decryption. Authenticity before decryption.
+
 */
-public:
-    crypto_file(const std::string &file_name /*, cipher_type type*/)
-        : total_file_length(0), dirty(false), filename(file_name) {}
 
-    ~crypto_file()
-    {
-        // Overwrite memory.
-        clear_buffers();
-    }
-
-    // read specified file in buffer.
-    // password is not saved.
-    error_type read(const std::string & password);
-
-    // write (possibly modified) buffer to associated file.
-    error_type write(const std::string & password);
-
-    // set all internal data buffers to 0.
-    void clear_buffers()
-    {
-        std::fill(file_header.begin(), file_header.end(), 0);
-        std::fill(decrypted_buffer.begin(), decrypted_buffer.end(), 0);
-        std::fill(encrypted_file.begin(), encrypted_file.end(), 0);
-    }
-
-    // Return time of last write. should only be called, after a
-    // successfull read().
-    // Provides integrity: user must remember when he last modified
-    // the file. If the returned date fits and hmac was verified
-    // successfully for authenticity.
-    //std::chrono::time_point<std::chrono::high_resolution_clock>
-    std::string
-    time_of_last_write() const
-    {
-        return libaan::util::to_string(
-            libaan::util::storable_time_point(timestamp), false);
-    }
-    // use this function to modify the decrypted buffer.
-    std::string &get_decrypted_buffer() { return decrypted_buffer; }
-    const std::string &get_decrypted_buffer() const { return decrypted_buffer; }
-
-    void set_dirty() { dirty = true; }
-    bool is_dirty() const { return dirty; }
-
-    error_type get_last_error() const { return last_error; } 
-    static std::string error_string(error_type err)
-    {
-        switch(err) {
-        case NO_ERROR: return "NO_ERROR";
-        case NO_HEADER_IN_FILE: return "NO_HEADER_IN_FILE";
-        case CIPHER_ERROR_FILE_LENGTH: return "CIPHER_ERROR_FILE_LENGTH";
-        case INTERNAL_CIPHER_ERROR: return "INTERNAL_CIPHER_ERROR";
-        }
-        return "UNKNOWN ERROR";
-    }
-    bool read_and_parse_old_version_0010(const std::string &password);
-
-private:
-    error_type error(error_type e) { last_error = e; return last_error; }
-
-    // parse file_header, fill iv/salt
-    bool parse_header();
-
-    // create file_header buffer from salt/iv etc
-    void build_header_from_buffers();
-
-    bool parse_header_old_version_0010();
-
-private:
-    // filesize including header
-    size_t total_file_length;
-    // fixed size header containing db information. unencrypted
-    std::string file_header;
-    std::string salt;
-    std::string iv;
-    std::string hmac;
-    std::string timestamp;
-
-    std::string encrypted_file;
-    std::string decrypted_buffer;
-    // decrypted_buffer changed. encrypted_file must be updated.
-    bool dirty;
-
-    const std::string filename;
-    error_type last_error;
-    const std::string version = VERSION_0020;
-    ssl_init init;
-};
-}
-}
+libaan::crypto_file::crypto_file(const std::string &file_name /*, cipher_type type*/)
+    : total_file_length(0), dirty(false), filename(file_name)
+{
+    OpenSSL_add_all_algorithms();
 }
 
-// Implementation
+libaan::crypto_file::~crypto_file()
+{
+    // Overwrite memory.
+    clear_buffers();
+    EVP_cleanup();
+}
 
-#include "crypto_camellia.hh"
-#include "crypto_hash.hh"
 
-inline bool libaan::crypto::file::crypto_file::parse_header()
+std::string libaan::crypto_file::time_of_last_write() const
+{
+    return to_string(deserialize_time_point<libaan::time_point_t>(timestamp), false);
+}
+
+bool libaan::crypto_file::parse_header()
 {
     size_t off = 0;
     std::string magic_tmp = file_header.substr(off, MAGIC.length());
@@ -185,12 +115,11 @@ inline bool libaan::crypto::file::crypto_file::parse_header()
     }
     off += version.length();
 
-    salt = file_header.substr(
-        off, camellia::camellia_256::SALT_SIZE);
-    off += camellia::camellia_256::BLOCK_SIZE;
+    salt = file_header.substr(off, camellia_256::SALT_SIZE);
+    off += camellia_256::BLOCK_SIZE;
 
-    iv = file_header.substr(off, camellia::camellia_256::BLOCK_SIZE);
-    off += camellia::camellia_256::BLOCK_SIZE;
+    iv = file_header.substr(off, camellia_256::BLOCK_SIZE);
+    off += camellia_256::BLOCK_SIZE;
     hmac = file_header.substr(off, hash::SHA1_HASHLENGTH);
     off += hash::SHA1_HASHLENGTH;
 
@@ -198,8 +127,7 @@ inline bool libaan::crypto::file::crypto_file::parse_header()
     return true;
 }
 
-inline void
-libaan::crypto::file::crypto_file::build_header_from_buffers()
+void libaan::crypto_file::build_header_from_buffers()
 {
     file_header.resize(HEADER_SIZE);
     std::fill(file_header.begin(), file_header.end(), 0);
@@ -213,14 +141,14 @@ libaan::crypto::file::crypto_file::build_header_from_buffers()
                         version);
     off += version.length();
 
-    std::string salt_tmp(camellia::camellia_256::SALT_SIZE, 0);
+    std::string salt_tmp(camellia_256::SALT_SIZE, 0);
     salt_tmp.replace(salt_tmp.begin(), salt_tmp.end(), salt);
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + salt_tmp.length(),
                         salt_tmp);
     off += salt_tmp.length();
 
-    std::string iv_tmp(camellia::camellia_256::BLOCK_SIZE, 0);
+    std::string iv_tmp(camellia_256::BLOCK_SIZE, 0);
     iv_tmp.replace(iv_tmp.begin(), iv_tmp.end(), iv);
     file_header.replace(file_header.begin() + off,
                         file_header.begin() + off + iv_tmp.length(), iv_tmp);
@@ -238,8 +166,8 @@ libaan::crypto::file::crypto_file::build_header_from_buffers()
                         file_header.begin() + off + timestamp_tmp.length(), timestamp_tmp);
 }
 
-inline libaan::crypto::file::crypto_file::error_type
-libaan::crypto::file::crypto_file::read(
+libaan::crypto_file::error_type
+libaan::crypto_file::read(
     const std::string &password)
 {
     clear_buffers();
@@ -253,9 +181,9 @@ libaan::crypto::file::crypto_file::read(
     //   + header valid. contains iv and salt. -> read and decrypt
     //   + header invalid. return error
 
-    camellia::camellia_256 cipher;
+    camellia_256 cipher;
     std::ifstream fp(filename, std::ios_base::in | std::ios_base::binary);
-    total_file_length = libaan::util::file::get_file_length(fp);
+    total_file_length = libaan::get_file_length(fp);
 
     if (total_file_length < HEADER_SIZE) {
         // No header/empty file. Create new header.
@@ -315,11 +243,11 @@ libaan::crypto::file::crypto_file::read(
     return error(NO_ERROR);
 }
 
-inline libaan::crypto::file::crypto_file::error_type
-libaan::crypto::file::crypto_file::write(
+libaan::crypto_file::error_type
+libaan::crypto_file::write(
     const std::string &password)
 {
-    camellia::camellia_256 cipher;
+    camellia_256 cipher;
     if(!cipher.init(salt, iv)) {
         std::cerr << "crypto_file::read: cipher.init() failed.\n";
         return INTERNAL_CIPHER_ERROR;
@@ -334,7 +262,8 @@ libaan::crypto::file::crypto_file::write(
         return INTERNAL_CIPHER_ERROR;
     }
 
-    timestamp = libaan::util::storable_time_point_now();
+    timestamp = storable_time_point_now_bin<libaan::time_point_t>();
+
     hash h;
     if(!h.sha1_hmac(timestamp + encrypted_file, password, hmac)) {
         std::cerr << "crypto_file::write(): hmac generation failed.\n";
@@ -358,7 +287,7 @@ libaan::crypto::file::crypto_file::write(
 }
 
 
-inline bool libaan::crypto::file::crypto_file::parse_header_old_version_0010()
+bool libaan::crypto_file::parse_header_old_version_0010()
 {
     size_t off = 0;
     std::string magic_tmp = file_header.substr(off, OLD_MAGIC_0010.length());
@@ -374,22 +303,21 @@ inline bool libaan::crypto::file::crypto_file::parse_header_old_version_0010()
         return false;
     }
     off += VERSION_0010.length();
-    salt = file_header.substr(
-        off, camellia::camellia_256::SALT_SIZE);
-    off += camellia::camellia_256::BLOCK_SIZE;
-    iv = file_header.substr(off, camellia::camellia_256::BLOCK_SIZE);
+    salt = file_header.substr(off, camellia_256::SALT_SIZE);
+    off += camellia_256::BLOCK_SIZE;
+    iv = file_header.substr(off, camellia_256::BLOCK_SIZE);
     return true;
 }
 
-inline bool libaan::crypto::file::crypto_file::read_and_parse_old_version_0010(
+bool libaan::crypto_file::read_and_parse_old_version_0010(
     const std::string &password)
 {
     clear_buffers();
     dirty = false;
 
-    camellia::camellia_256 cipher;
+    camellia_256 cipher;
     std::ifstream fp(filename, std::ios_base::in | std::ios_base::binary);
-    total_file_length = libaan::util::file::get_file_length(fp);
+    total_file_length = libaan::get_file_length(fp);
     if (total_file_length < OLD_HEADER_SIZE_0010) {
         // No header/empty file. Create new header.
         if(!cipher.init()) {
@@ -428,5 +356,3 @@ inline bool libaan::crypto::file::crypto_file::read_and_parse_old_version_0010(
     set_dirty();
     return true;
 }
-
-#endif

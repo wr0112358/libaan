@@ -1,0 +1,12 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib64
+includedir=${prefix}/include
+
+Name: libaan
+Description: A library for all and none
+Version: 0.0.1
+Requires: 
+Libs: -L${libdir} -lssl -lcrypto -lX11
+Libs.private:
+Cflags: -I${includedir} -I/usr/include

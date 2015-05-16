@@ -1,11 +1,9 @@
 libaan - A library for all and none
-  Where all is pointed more at the usecases than at the users
 
 What
   Code snippets I needed more than once.
   Small c++11 wrappers for low level system functionality.
   Only headers(yet).
-  Some unit tests. There should be more.
   Serves mostly as reminder of some c++ techniques, but is also used as include
   library in some of my applications.
 

@@ -1,39 +1,6 @@
-/*
-Copyright (C) 2014 Reiter Wolfgang wr0112358@gmail.com
+#include "x11.hh"
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-as published by the Free Software Foundation; either version 2
-of the License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program; if not, write to the Free Software
-Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
-*/
-
-#ifndef _LIBAAN_X11_UTIL_HH_
-#define _LIBAAN_X11_UTIL_HH_
-
-#include <chrono>
-//#include <iostream>
-#include <unistd.h>   
-#include <cstdlib>
-
-namespace libaan {
-namespace util {
-namespace x11 {
-bool add_to_clipboard(const std::string &string,
-                      std::chrono::milliseconds try_for);
-}
-}
-}
-
-#include "chrono_util.hh"
+#include "time.hh"
 #include <X11/Xlib.h> 
 #include <X11/Xatom.h>
 
@@ -41,8 +8,8 @@ bool add_to_clipboard(const std::string &string,
 /**
  * Blocks until the user "empties the selection buffer".
  */
-bool libaan::util::x11::add_to_clipboard(const std::string &string,
-                                         std::chrono::milliseconds try_for)
+bool libaan::add_to_clipboard(const std::string &string,
+                              std::chrono::milliseconds try_for)
 {
     Display *display = XOpenDisplay(NULL);
     if(!display)
@@ -70,7 +37,7 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
 
     Bool event_status = false;
     bool loop_done = false;
-    libaan::util::time_me_ms timer;
+    libaan::timer_ms timer;
     do {
         XSetSelectionOwner(display, XA_PRIMARY, window, CurrentTime);
         XFlush (display);
@@ -150,5 +117,3 @@ bool libaan::util::x11::add_to_clipboard(const std::string &string,
 
     return true;
 }
-
-#endif

@@ -4,5 +4,5 @@ all:
 
 install:
 	rm -rf $(INSTALL_DIR)
-	mkdir $(INSTALL_DIR)
+	mkdir -p $(INSTALL_DIR)
 	cp *.hh $(INSTALL_DIR)

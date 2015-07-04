@@ -1,9 +1,10 @@
 
-#include "../crypto_camellia.hh"
-#include "../crypto_file.hh"
-#include "../crypto_util.hh"
-#include "../file_util.hh"
+#include "libaan/crypto.hh"
+#include "libaan/crypto_file.hh"
+#include "libaan/file.hh"
 #include <unistd.h>
+
+#include <iostream>
 
 namespace {
 
@@ -19,11 +20,11 @@ void print_usage(int, char *argv[])
 // rerad in encrypted file fails
 bool convert(const std::string &file)
 {
-    const libaan::crypto::util::password_from_stdin pw2(6);
+    const libaan::password_from_stdin pw2(6);
     if(!pw2.have_password)
         return false;
 
-    using namespace libaan::crypto::file;
+    using namespace libaan;
     crypto_file file_io(file);
 
     if(!file_io.read_and_parse_old_version_0010(pw2.password)) {

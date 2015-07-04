@@ -139,8 +139,7 @@ void test_split2_b(const std::string &input, const libaan::string_type &delim,
 }
 
 void test_split2_c(const libaan::string_type &input, const libaan::string_type &delim,
-                   const std::vector<std::string> &result,
-                   bool input_as_stringtype = false)
+                   const std::vector<std::string> &result)
 {
     const auto r = libaan::split(input, delim);
 
@@ -223,6 +222,20 @@ TEST(string_hh, stl_search_all) {
     // print(words, 0, 80);
     // for(auto rr: r) print(words, rr, patt.length() + 3);
 }
+
+/*
+TODO: sarr*::get_suffixes()
+// my benchmark programm:
+// suffix array for: "banana$"       6 5 3 1 0 4 2
+// suffix array for: "banana"        5 3 1 0 4 2
+// suffix array for: "mississippi$"  11 10 7 4 1 0 9 8 6 3 5 2
+// suffix array for: "mississippi"   10 7 4 1 0 9 8 6 3 5 2
+// suffix array for: "abracadabra$"  11 10 7 0 3 5 8 1 4 6 9 2
+// suffix array for: "abracadabra"   10 7 0 3 5 8 1 4 6 9 2
+// suffix array for: "yabbadabbado$" 12 1 6 4 9 3 8 2 7 5 10 11 0
+// suffix array for: "yabbadabbado"  1 6 4 9 3 8 2 7 5 10 11 0
+
+*/
 
 TEST(string_hh, sarr_cx11) {
     init();

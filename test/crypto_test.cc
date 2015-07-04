@@ -139,6 +139,27 @@ TEST(crypto_hh, pkcs5) {
     // TODO
 }
 
+/*
+bool get_key(const std::string & pw, std::string & key)
+{
+    const size_t iteration_count = 1000;
+    std::string salt(16, 0);
+
+//    if(!read_random_bytes(16, salt)) {// 128 bit salt
+//        std::cout << "read from /dev/random failed\n";
+//        return false;
+//    }
+
+    using namespace libaan::crypto;
+    if(!pbkdf2_pkcs5::pbkdf2(pw, salt, iteration_count, key)) {
+        std::cout << "pbkdf2 key generation failed.\n";
+        return false;
+    }
+
+    return true; 
+}
+*/
+
 TEST(crypto_hh, pbkdf2) {
     // TODO
 }
@@ -149,6 +170,25 @@ TEST(crypto_hh, camellia_256) {
 
 TEST(crypto_hh, lion) {
     // TODO
+
+/* TODO:
+- segfaults
+  -> only for very small inputs
+  -> int tmp[HASH_WORDS] in encrypt() expects 32bit type?
+- blocksize == filesize
+
+    lion::encrypt(reinterpret_cast<const unsigned char *>(src_buff.c_str()),
+                  reinterpret_cast<unsigned char *>(&dst_buff[0]),
+                  src_buff.length(), reinterpret_cast<const unsigned char *>(&key[0]));
+    libaan::util::file::write_file(dst.c_str(), dst_buff);
+    std::string cipher_text;
+    libaan::util::file::read_file(dst.c_str(), cipher_text);
+    std::string dst_decrypted;
+    dst_decrypted.resize(cipher_text.length());
+    lion::decrypt(reinterpret_cast<const unsigned char *>(cipher_text.c_str()),
+                  reinterpret_cast<unsigned char *>(&dst_decrypted[0]),
+                  cipher_text.length(), reinterpret_cast<const unsigned char *>(&key[0]));
+*/
 }
 
 TEST(crypto_hh, ranf) {

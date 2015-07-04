@@ -626,33 +626,8 @@ void libaan::search::sarr_dc3::dump_suffix_array()
 
 void libaan::search::sarr_dc3::create()
 {
-#ifdef _DEBUG_TIMINGS_
-    libaan::util::time_me_ns timer;
-#endif
-
     create_source_array(input_text, input_text_padded, max_key);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time1 = timer.duration();
-    timer.restart();
-#endif
-
     suffix_array = create_suffix_array_buffer(input_text_padded);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time2 = timer.duration();
-    timer.restart();
-#endif
-
     suffixArray(&input_text_padded[0], suffix_array.get(), input_text.length(),
                 max_key);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time3 = timer.duration();
-
-    const auto time_mod = 1. / (1000. * 1000.);
-    std::cout << "create_source_array: " << time1 *time_mod << " ms\n"
-              << "create_suffix_array_buffer: " << time2 *time_mod << " ms\n"
-              << "suffixArray: " << time3 *time_mod << " ms\n";
-#endif
 }

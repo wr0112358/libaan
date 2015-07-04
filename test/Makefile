@@ -1,38 +1,38 @@
-include ../Makefile.in
+include ../Makefile.inc
 
-test: test_x11_util crypto_file_test crypto_util_test crypto_util_test_camellia test_terminal test_string_util test_string_suffix_search test_string_suffix_search_dc3 crypto_hash_test convert_crypto_file_0010to0020
-#crypto_util_test_lion 
+LDFLAGS=-lssl -lcrypto -lX11
+#LDFLAGS=$(pkg-config --libs libaan)
 
-test_x11_util: test_x11_util.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lX11 -o test_x11_util
+all: unittest
 
-test_terminal: test_terminal.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@
+CXXFLAGS+=-I$(PROJECT_ROOT)
+LDFLAGS=-lasan -Wl,-rpath ../libaan -L ../libaan -laan
 
-crypto_util_test: crypto_util_test.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
-crypto_util_test_camellia: crypto_util_test_camellia.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
-crypto_util_test_lion: crypto_util_test_lion.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
+algorithm_test.o: algorithm_test.cc $(PROJECT_ROOT)/libaan/algorithm.hh
+byte_test.o: byte_test.cc $(PROJECT_ROOT)/libaan/byte.hh
+crypto_test.o: crypto_test.cc
+crypto_file_test.o: crypto_file_test.cc
+debug_test.o: debug_test.cc
+string_test.o: string_test.cc $(PROJECT_ROOT)/libaan/string.hh
+time_test.o: time_test.cc $(PROJECT_ROOT)/libaan/time.hh
+unittest.o: unittest.cc
+ALL_OBJS = unittest.o algorithm_test.o byte_test.o crypto_test.o crypto_file_test.o debug_test.o string_test.o time_test.o
 
-crypto_hash_test: crypto_hash_test.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@ -lssl -lcrypto
-
-test_string_util: test_string_util.cc
-	$(CXX) $(CXX_FLAGS) $(INCLUDES) $? -o $@
-
-crypto_file_test: crypto_file_test.cc
-	$(CXX) $(CXX_FLAGS) -lssl -lcrypto $^ -o $@
-
-convert_crypto_file_0010to0020: convert_crypto_file_0010to0020.cc
-	$(CXX) $(CXX_FLAGS) -lssl -lcrypto $^ -o $@
-
-test_string_suffix_search: test_string_suffix_search.cc ../string_suffix_search.cc ../string_suffix_search_dc3_internal.cc
-	$(CXX) $(CXX_FLAGS)  $^ -o $@
-
-test_string_suffix_search_dc3: test_string_suffix_search_dc3.cc ../string_suffix_search.cc ../string_suffix_search_dc3_internal.cc
-	$(CXX) $(CXX_FLAGS) -D_DEBUG_TIMINGS_ $^ -o $@
+unittest: LDFLAGS+=-lgtest
+unittest: $(ALL_OBJS)
+	$(CXX) $^ -o $@ $(LDFLAGS)
 
 clean:
-	rm -f test_terminal test_x11_util crypto_util_test crypto_util_test_camellia test_string_util crypto_file_test test_string_suffix_search_dc3 test_string_suffix_search
+	rm -f *.o unittest tt3 tt2 tt
+
+small: tt3 tt2 tt
+
+tt3: tt3.o
+	$(CXX) $^ -o $@ $(LDFLAGS)
+
+# fails
+tt2:
+	$(CXX) -c tt2.cc -o tt2.o $(LDFLAGS)
+
+tt: tt.o
+	$(CXX) $^ -o $@ $(LDFLAGS)

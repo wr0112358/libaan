@@ -1,0 +1,17 @@
+PROJECT_NAME=libaan
+
+MAJOR_ID=0
+MINOR_ID=0.1
+SOVERSION=$(MAJOR_ID).$(MINOR_ID)
+SO_LINKERNAME=$(PROJECT_NAME).so
+SO_REALNAME=$(SO_LINKERNAME).$(SOVERSION)
+SONAME=$(SO_LINKERNAME).$(MAJOR_ID)
+
+WARN_MORE=-Wextra -Wpedantic -Wpointer-arith -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wno-long-long -Wwrite-strings -Wcast-qual -pedantic-errors -fsanitize=address -ggdb
+CXXFLAGS=-std=c++1y -Wall -Werror $(WARN_MORE)
+CXX=g++
+
+# relative..
+PROJECT_ROOT:=$(dir $(lastword $(MAKEFILE_LIST)))
+# or absolute paths
+# PROJECT_ROOT := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))

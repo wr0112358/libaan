@@ -23,6 +23,9 @@ public:
     operator std::string() const { return std::string(s, s + l); }
     // return { s, s + l };
 
+    size_t length() const { return l; }
+    const char *data() const { return s; }
+
 private:
     friend bool operator==(const string_type &lhs, const string_type &rhs);
     friend bool operator==(const char *lhs, const string_type &rhs);
@@ -75,6 +78,10 @@ struct sarr_cx11 {
     std::vector<std::size_t> search(const std::string &pattern);
     void print();
 
+#ifdef UNITTEST
+    const std::vector<std::size_t> &get_suffixes() const { return suffixes; }
+#endif
+
 private:
     std::vector<std::size_t> suffixes;
     const char *input;
@@ -95,6 +102,10 @@ struct sarr_c {
 
     // A utility function to print an array of given size
     void print();
+
+#ifdef UNITTEST
+    const std::vector<int> &get_suffixes() const { return suffixes; }
+#endif
 
 private:
     std::vector<int> suffixes;
@@ -125,6 +136,10 @@ struct sarr_dc3 {
     std::vector<std::size_t> search(const std::string &pattern);
     void search_and_dump_all(const std::string &pattern);
     void dump_suffix_array();
+
+#ifdef UNITTEST
+    const std::pair<int *, size_t> &get_suffixes() const { return std::make_pair(suffix_array, input_text_padded.size()); }
+#endif
 
 private:
     void create();

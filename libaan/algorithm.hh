@@ -95,4 +95,8 @@ inline bool contains_only(const std::string &c, const std::string &set)
 
 }
 
+template<typename T>
+const T& min(const T &a, const T &b, const T &c)
+{ return std::min(std::min(a, b), c); }
+
 #endif

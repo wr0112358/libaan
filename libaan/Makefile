@@ -2,7 +2,7 @@ include ../Makefile.inc
 
 CXXFLAGS+=-fPIC
 
-LDFLAGS=-shared -Wl,-soname,$(SONAME) -lssl -lcrypto -lX11
+LDFLAGS+=-shared -Wl,-soname,$(SONAME) -lssl -lcrypto -lX11
 
 all: $(SO_REALNAME)# tmp
 
@@ -26,3 +26,7 @@ clean:
 
 
 # TODO: one .so per external dependency? -> libaan_x11.so libaan_ssl.so
+
+tt.o: tt.cc
+tt: tt.o
+	$(CXX) -o $@ $^

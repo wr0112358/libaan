@@ -7,6 +7,6 @@ Name: libaan
 Description: A library for all and none
 Version: 0.0.1
 Requires:
-Libs:-L${libdir} -laan -lssl -lcrypto -lX11 -lXmu
+Libs: -lasan -L${libdir} -laan -lssl -lcrypto -lX11 -lXmu
 Libs.private:
-Cflags: -I${includedir} -I/usr/include
+Cflags: -I${includedir} -I/usr/include -fsanitize=address -fno-omit-frame-pointer

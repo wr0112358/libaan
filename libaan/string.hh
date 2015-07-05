@@ -11,6 +11,7 @@
 
 namespace libaan {
 
+// TODO: passing string_type to a function taking a "const std::string &" should be prohibited
 class string_type {
 public:
     /*explicit*/ string_type(const std::string &s)
@@ -25,6 +26,12 @@ public:
 
     size_t length() const { return l; }
     const char *data() const { return s; }
+
+    int compare(size_t pos, size_t count, const string_type &str) const
+    {
+        return (str.length() < count || l < (pos + count))
+                               ? false : strncmp(s + pos, str.s, count) == 0;
+    }
 
 private:
     friend bool operator==(const string_type &lhs, const string_type &rhs);
@@ -45,7 +52,6 @@ bool operator==(const std::string &lhs, const string_type &rhs);
 std::vector<string_type> split(const string_type &input, const string_type &delim);
 std::vector<string_type> split(const string_type &input, unsigned char delim);
 
-std::vector<std::string> split3(const std::string &input, const std::string &delim);
 std::vector<string_type> split2(const std::string &input, const std::string &delim);
 
 template<typename T>
@@ -155,7 +161,18 @@ private:
     int max_key;
 };
 
+}
 
+template<typename string_t, typename string2_t>
+inline bool startswith(const string_t &s, const string2_t &prefix)
+{
+    return s.length() < prefix.length() ? false : s.compare(0, prefix.length(), prefix) == 0;
+}
+
+template<typename string_t, typename string2_t>
+inline bool endswith(const string_t &s, const string2_t &suffix)
+{
+    return s.length() < suffix.length() ? false : s.compare(s.length() - suffix.length(), suffix.length(), suffix) == 0;
 }
 
 }

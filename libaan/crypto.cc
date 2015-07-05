@@ -242,11 +242,16 @@ void libaan::pkcs5_initial_prf(
     size_t swapped_i;
     HMAC_CTX ctx;
     HMAC_CTX_init(&ctx);
-    HMAC_Init(&ctx, password, password_length, EVP_sha1());
-    HMAC_Update(&ctx, salt, salt_length);
+    if(HMAC_Init(&ctx, password, password_length, EVP_sha1()) != 1)
+        std::cout << "HMAC_Init failed\n";
+    if(HMAC_Update(&ctx, salt, salt_length) != 1)
+        std::cout << "HMAC_Update failed\n";
     swapped_i = htonl(i);
-    HMAC_Update(&ctx, (unsigned char *)&swapped_i, 4);
-    HMAC_Final(&ctx, out, (unsigned int *)outlen);
+    if(HMAC_Update(&ctx, (unsigned char *)&swapped_i, 4) != 1)
+        std::cout << "HMAC_Update failed\n";
+    if(HMAC_Final(&ctx, out, (unsigned int *)outlen) != 1)
+        std::cout << "HMAC_Final failed\n";
+    HMAC_CTX_cleanup(&ctx);
 }
 
 void libaan::pkcs5_subsequent_prf(
@@ -255,9 +260,14 @@ void libaan::pkcs5_subsequent_prf(
 {
     HMAC_CTX ctx;
     HMAC_CTX_init(&ctx);
-    HMAC_Init(&ctx, password, password_length, EVP_sha1());
-    HMAC_Update(&ctx, v, vlen);
-    HMAC_Final(&ctx, o, (unsigned int *)olen);
+
+    if(HMAC_Init(&ctx, password, password_length, EVP_sha1()) != 1)
+        std::cout << "HMAC_Init failed\n";
+    if(HMAC_Update(&ctx, v, vlen) != 1)
+        std::cout << "HMAC_Update failed\n";
+    if(HMAC_Final(&ctx, o, (unsigned int *)olen) != 1)
+        std::cout << "HMAC_Final failed\n";
+    HMAC_CTX_cleanup(&ctx);
 }
 
 void libaan::pkcs5_F(const unsigned char *password,
@@ -327,10 +337,10 @@ bool libaan::read_random_bytes(size_t count, std::string & bytes)
     bytes.resize(count);
 
 #ifndef NO_GOOD
-    const std::string REAL_RANDOM_NUMBERS = "/dev/random";
-    const std::string PSEUDO_RANDOM_NUMBERS = "/dev/urandom";
+    // my block: /dev/random
+    // should not block: /dev/urandom
 
-    std::ifstream f(REAL_RANDOM_NUMBERS,
+    std::ifstream f("/dev/urandom",
                     std::ios_base::in | std::ios_base::binary);
     f.read(&bytes[0], count);
     return !!f;
@@ -539,6 +549,7 @@ bool libaan::camellia_256::do_decrypt(EVP_CIPHER_CTX *ctx,
         std::cout << "EVP_DecryptFinal failed:\n\toffset = " << ol
                   << "\n\twritten = " << written << "\n";
         std::cout << "\n\"" << ERR_error_string(err, nullptr) << "\"\n";
+        ERR_free_strings();
         return false;
     }
 
@@ -567,7 +578,7 @@ bool libaan::camellia_256::generate_key(const std::string &pw, std::string &key)
 bool libaan::camellia_256::new_random_iv()
 {
    if(!read_random_bytes(BLOCK_SIZE, iv)) {// iv with block size
-        std::cout << "read from /dev/random failed\n";
+       //std::cout << "read from /dev/random failed\n";
         return false;
     }
     return true;
@@ -576,7 +587,7 @@ bool libaan::camellia_256::new_random_iv()
 bool libaan::camellia_256::init()
 {
     if(!read_random_bytes(16, salt)) {// 128 bit salt
-        std::cout << "read from /dev/random failed\n";
+        //std::cout << "read from /dev/random failed\n";
         return false;
     }
 
@@ -630,6 +641,9 @@ bool libaan::camellia_256::encrypt(const std::string &pw, const std::string &pla
 
     bool ret = do_encrypt(&ctx, plain, cipher);
 
+    if(EVP_CIPHER_CTX_cleanup(&ctx) != 1)
+        std::cout << "EVP_CIPHER_CTX_cleanup failed\n";
+
     return ret;
 }
 
@@ -658,7 +672,12 @@ bool libaan::camellia_256::decrypt(const std::string &pw, const std::string &cip
     }
     plain.resize(cipher.length() + BLOCK_SIZE + 1);
 
-    return do_decrypt(&ctx, cipher, plain);
+    const auto ret = do_decrypt(&ctx, cipher, plain);
+
+    if(EVP_CIPHER_CTX_cleanup(&ctx) != 1)
+        std::cout << "EVP_CIPHER_CTX_cleanup failed\n";
+
+    return ret;
 }
 
 

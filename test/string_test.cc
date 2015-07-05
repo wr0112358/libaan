@@ -21,22 +21,30 @@ void init()
     EXPECT_EQ(words.size(), sz);
     EXPECT_TRUE(words.size() > 0);
 
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("aaa", "a", { "\0" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("aaa", "a", { }));
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("  ", "", { }));
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("  ", " ", { "" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("  ", " ", { }));
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("abc", "b", { "a", "c" }));
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a a", " ", { "a", "a" }));
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a a", "a", { " ", "\0" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a a", "a", { " " }));
 
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("aaa", "aa", { "a" }));
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("abc", "abc", { "" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("abc", "abc", { }));
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a  a", "  ", { "a", "a" }));
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a  a  a", "  ", { "a", "a", "a" }));
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a  a  a  ", "  ", { "a", "a", "a", "" }));
-    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("aaaa", "aa", { "" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("a  a  a  ", "  ", { "a", "a", "a" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("aaaa", "aa", { }));
 
     test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >("", "", { }));
 
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >
+                           ("\t\t\t\n\t\t\t\n\n\n\t\t\t\n", "\n", { "\t\t\t", "\t\t\t", "\t\t\t" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >
+                           ("\t\t\t\n\t\t\t\n\n\n", "\n", { "\t\t\t", "\t\t\t" }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >
+                           ("\n\n\n", "\n", { }));
+    test_set_str.push_back(std::make_tuple<std::string, std::string, std::vector<std::string> >
+                           ("\n\n\n", "\t", { "\n\n\n" }));
 
     test_set_char.push_back(std::make_tuple<std::string, char, std::vector<std::string> >("aaa", 'a', { }));
     test_set_char.push_back(std::make_tuple<std::string, char, std::vector<std::string> >("aba", 'a', { "b" }));
@@ -59,18 +67,6 @@ void print(std::string words, size_t off, size_t count, bool no_nl = false)
     std::cout << words.substr(off, count) << (!no_nl ? "\n" : "");
 }
 
-void test_split3(const std::string &input, const std::string &delim,
-                 const std::vector<std::string> &result)
-{
-    const auto r = libaan::split3(input, delim);
-//    for(const auto rr: r) std::cout << "\"" << rr<< "\", "; std::cout << "\n";
-    EXPECT_EQ(result.size(), r.size());
-    if(result.size() != r.size())
-        return;
-    EXPECT_EQ(result, r);
-}
-
-
 TEST(string_hh, stringtype_equality) {
     init();
     for(const auto &t: test_set_str) {
@@ -83,13 +79,6 @@ TEST(string_hh, stringtype_equality) {
         EXPECT_TRUE(std::get<0>(t).c_str() == libaan::string_type(std::get<0>(t).c_str()));
         EXPECT_TRUE(libaan::string_type(std::get<0>(t)) == std::get<0>(t).c_str());
     }
-}
-
-TEST(string_hh, split3) {
-    init();
-
-    for(const auto &t: test_set_str)
-        test_split3(std::get<0>(t), std::get<1>(t), std::get<2>(t));
 }
 
 bool operator==(const std::vector<std::string> &lhs,
@@ -112,7 +101,7 @@ void test_split2(const std::string &input, const delim_type &delim,
         ? libaan::split(input, delim)
         : libaan::split(input, delim);
 
-//    for(const auto rr: r) std::cout << "\"" << std::string(rr) << "\", "; std::cout << "\n";
+    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
     EXPECT_EQ(result.size(), r.size());
     if(result.size() != r.size())
         return;
@@ -129,13 +118,12 @@ void test_split2_b(const std::string &input, const libaan::string_type &delim,
         ? libaan::split(input, delim)
         : libaan::split2(input, delim);
 
-//    for(const auto rr: r) std::cout << "\"" << std::string(rr) << "\", "; std::cout << "\n";
+    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
     EXPECT_EQ(result.size(), r.size());
     if(result.size() != r.size())
         return;
     EXPECT_TRUE(result == r);
 
-    //EXPECT_EQ(result, r);
 }
 
 void test_split2_c(const libaan::string_type &input, const libaan::string_type &delim,
@@ -143,13 +131,11 @@ void test_split2_c(const libaan::string_type &input, const libaan::string_type &
 {
     const auto r = libaan::split(input, delim);
 
-//    for(const auto rr: r) std::cout << "\"" << std::string(rr) << "\", "; std::cout << "\n";
     EXPECT_EQ(result.size(), r.size());
     if(result.size() != r.size())
         return;
     EXPECT_TRUE(result == r);
 
-    //EXPECT_EQ(result, r);
 }
 
 TEST(string_hh, split2_str) {
@@ -165,6 +151,9 @@ TEST(string_hh, split2_str) {
 
     for(const auto &t: test_set_str)
         test_split2(std::get<0>(t), std::get<1>(t), std::get<2>(t), true);
+
+    libaan::string_type s("ababab", 4);
+    test_split2(s, "b", { "a", "a" });
 }
 
 TEST(string_hh, split2_char) {

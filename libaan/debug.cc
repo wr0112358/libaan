@@ -14,7 +14,7 @@ void libaan::do_ls(const std::string &path, std::ostream &out)
         << ".d_name = \"" << p->d_name << "\" }\n";
     };
     out << path << "\n";
-    libaan::readdir(path, f);
+     libaan::readdir(path, f);
 }
 
 namespace {

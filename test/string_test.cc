@@ -5,7 +5,6 @@
 #include <algorithm>
 #include <gtest/gtest.h>
 
-#define WORD_FILE "/usr/share/dict/words"
 std::string words;
 
 std::vector<std::tuple<std::string, std::string, std::vector<std::string> > >test_set_str;
@@ -15,7 +14,7 @@ void init()
 {
     if(!words.empty())
         return;
-    const auto sz = libaan::read_file(WORD_FILE, words,
+    const auto sz = libaan::read_file(WORDSFILE, words,
                                       // make debugging faster:
                                       80);
     EXPECT_EQ(words.size(), sz);

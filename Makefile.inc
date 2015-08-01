@@ -22,6 +22,12 @@ else
     CXX=$(CXX_OVERRIDE)
 endif
 
+ifeq ($(WORDSFILE_OVERRIDE),)
+    WORDSFILE=/usr/share/dict/words
+else
+    WORDSFILE=$(WORDSFILE_OVERRIDE)
+endif
+
 # relative..
 PROJECT_ROOT:=$(dir $(lastword $(MAKEFILE_LIST)))
 # or absolute paths

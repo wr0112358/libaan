@@ -3,7 +3,7 @@ include ../Makefile.inc
 LDFLAGS=-lssl -lcrypto -lX11
 #LDFLAGS=$(pkg-config --libs libaan)
 
-all: unittest
+all: build_gtest unittest
 
 CXXFLAGS+=-I$(PROJECT_ROOT)
 LDFLAGS=-lasan -Wl,-rpath ../libaan -L ../libaan -laan
@@ -18,12 +18,15 @@ time_test.o: time_test.cc $(PROJECT_ROOT)/libaan/time.hh
 unittest.o: unittest.cc
 ALL_OBJS = unittest.o algorithm_test.o byte_test.o crypto_test.o crypto_file_test.o debug_test.o string_test.o time_test.o
 
-unittest: LDFLAGS+=-lgtest
+
+unittest: LDFLAGS+=.build_gtest/gtest-1.7.0/lib/.libs/libgtest.a -pthread
+unittest: CXXFLAGS+=.build_gtest/gtest-1.7.0/include/
 unittest: $(ALL_OBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 
 clean:
 	rm -f *.o unittest tt3 tt2 tt
+	./gtest.sh clean
 
 small: tt3 tt2 tt
 
@@ -36,3 +39,9 @@ tt2:
 
 tt: tt.o
 	$(CXX) $^ -o $@ $(LDFLAGS)
+
+
+.PHONY: build_gtest
+build_gtest:
+	./gtest.sh clean
+	GTEST_CXXFLAGS="$(CXXFLAGS) -Wno-error=missing-field-initializers -Wno-missing-field-initializers" GTEST_CXX=$(CXX) ./gtest.sh build

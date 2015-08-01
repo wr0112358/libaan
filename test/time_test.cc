@@ -3,12 +3,20 @@
 #include <gtest/gtest.h>
 
 TEST(time_hh, to_string) {
+    if(setenv("TZ", ":UTC", 1) == -1)
+    {}
+    tzset();
+
     const auto t1 = libaan::time_point_t();
-    EXPECT_EQ("01.01.1970_01.00.00", libaan::to_string(t1));
-    EXPECT_EQ("01.01.1970 01:00:00", libaan::to_string(t1, false));
+    EXPECT_EQ("01.01.1970_00.00.00", libaan::to_string(t1));
+    EXPECT_EQ("01.01.1970 00:00:00", libaan::to_string(t1, false));
 
     const libaan::time_point_t t2 = libaan::clock_t::from_time_t(2147483647);
-    EXPECT_EQ("19.01.2038 04:14:07", libaan::to_string(t2, false));
+    EXPECT_EQ("19.01.2038 03:14:07", libaan::to_string(t2, false));
+
+    if(unsetenv("TZ") == -1)
+    {}
+    tzset();
 }
 
 /*

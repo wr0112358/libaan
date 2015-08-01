@@ -20,7 +20,7 @@ ALL_OBJS = unittest.o algorithm_test.o byte_test.o crypto_test.o crypto_file_tes
 
 
 unittest: LDFLAGS+=.build_gtest/gtest-1.7.0/lib/.libs/libgtest.a -pthread
-unittest: CXXFLAGS+=.build_gtest/gtest-1.7.0/include/
+unittest: CXXFLAGS+=-isystem .build_gtest/gtest-1.7.0/include/
 unittest: $(ALL_OBJS)
 	$(CXX) $^ -o $@ $(LDFLAGS)
 

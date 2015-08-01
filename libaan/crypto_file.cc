@@ -86,6 +86,7 @@ libaan::crypto_file::~crypto_file()
 {
     // Overwrite memory.
     clear_buffers();
+    std::cout << "~crypto_file\n";
     EVP_cleanup();
 }
 

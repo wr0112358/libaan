@@ -1,5 +1,2 @@
 *.o
-libaan.so
-libaan.so.0.0.1
-crypto_file_test
-test_x11_util
+libaan.so*

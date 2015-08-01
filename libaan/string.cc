@@ -18,31 +18,6 @@ bool libaan::operator==(const std::string &lhs, const string_type &rhs)
     return lhs.size() == rhs.l ? std::strncmp(lhs.data(), rhs.s, rhs.l) == 0 : false;
 }
 
-std::vector<std::string> libaan::split3(const std::string &input,
-                                       const std::string &delim)
-{
-    std::vector<std::string> tokens;
-    if(delim.empty())
-        return tokens;
-
-    std::string::size_type start = 0;
-    std::string::size_type end;
-
-    for(;;) {
-        end = input.find(delim, start);
-        const auto l = end - start;
-        if(l > 0)
-            tokens.push_back(input.substr(start, l));
-        // just copied the last token
-        if(end == std::string::npos)
-            break;
-        // exclude delimiter in next search
-        start = end + delim.size();
-    }
-
-    return tokens;
-}
-
 std::vector<libaan::string_type>
 libaan::split2(const std::string &input, const std::string &delim)
 {
@@ -58,7 +33,9 @@ libaan::split2(const std::string &input, const std::string &delim)
 
         // Just copied the last token
         if(end == std::string::npos) {
-            tokens.emplace_back(&input.data()[start], input.size() - start);
+            const auto l = input.size() - start;
+            if(l > 0)
+                tokens.emplace_back(&input.data()[start], l);
             break;
         }
 
@@ -84,15 +61,25 @@ std::vector<libaan::string_type> libaan::split(const string_type &input, const s
 
     const char *start = input.s;
     const char *end = nullptr;
+    const auto max = start + input.length();
 
     for(;;) {
         end = std::strstr(start, delim.s);
 
         // Just copied the last token
         if(end == nullptr) {
-            tokens.emplace_back(start, input.s + input.l - start);
+            const auto size = input.s + input.l - start;
+            if((input.s + input.l) < start)
+                break;
+
+            if(size > 0)
+                tokens.emplace_back(start, size);
+
             break;
         }
+
+        if(end > max)
+            break;//std::cout << "libaan::split: end < start -> " << (size_t)start - (size_t)end << "\n";
 
         const auto l = end - start;
         if(l == 0) {
@@ -626,33 +613,8 @@ void libaan::search::sarr_dc3::dump_suffix_array()
 
 void libaan::search::sarr_dc3::create()
 {
-#ifdef _DEBUG_TIMINGS_
-    libaan::util::time_me_ns timer;
-#endif
-
     create_source_array(input_text, input_text_padded, max_key);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time1 = timer.duration();
-    timer.restart();
-#endif
-
     suffix_array = create_suffix_array_buffer(input_text_padded);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time2 = timer.duration();
-    timer.restart();
-#endif
-
     suffixArray(&input_text_padded[0], suffix_array.get(), input_text.length(),
                 max_key);
-
-#ifdef _DEBUG_TIMINGS_
-    const auto time3 = timer.duration();
-
-    const auto time_mod = 1. / (1000. * 1000.);
-    std::cout << "create_source_array: " << time1 *time_mod << " ms\n"
-              << "create_suffix_array_buffer: " << time2 *time_mod << " ms\n"
-              << "suffixArray: " << time3 *time_mod << " ms\n";
-#endif
 }

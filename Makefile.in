@@ -1,6 +1,0 @@
-PROJECT_NAME=libaan
-INSTALL_DIR=/opt/usr/include/$(PROJECT_NAME)
-INCLUDES=-I/opt/usr/include/
-CXX = clang++
-CXX_FLAGS += -g -Werror -Wall -Wextra -Wpedantic -Wpointer-arith -Wcast-align -Wredundant-decls -Wdisabled-optimization -Wno-long-long -Wwrite-strings -Wcast-qual -pedantic-errors -m64 -std=c++11
-# -Wconversion -Wshadow

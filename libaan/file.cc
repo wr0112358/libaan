@@ -47,6 +47,7 @@ inline size_t libaan::get_file_length(std::ifstream & fp)
     if(length == std::fstream::pos_type(-1))
         return 0;
     fp.seekg(0, fp.beg);
+
     return length;
 }
 

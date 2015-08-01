@@ -1,0 +1,6 @@
+language: c++
+compiler: g++
+script: make build && (cd test/; make all && ./unittest)
+notifications:
+email:
+      - wr0112358@gmail.com

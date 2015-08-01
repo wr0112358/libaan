@@ -6,8 +6,9 @@ before_install:
     - sudo apt-get update -qq
 install:
     - sudo apt-get install -qq g++-5 rpm2cpio
-    - (cd /tmp; wget https://dl.fedoraproject.org/pub/fedora/linux/releases/22/Server/x86_64/os/Packages/w/words-3.0-23.fc21.noarch.rpm && rpm2cpio words-3.0-23.fc21.noarch.rpm | cpio -i --make-directories && export WORDSFILE_OVERRIDE=usr/share/dict/words)
+    - (cd /tmp; wget https://dl.fedoraproject.org/pub/fedora/linux/releases/22/Server/x86_64/os/Packages/w/words-3.0-23.fc21.noarch.rpm && rpm2cpio words-3.0-23.fc21.noarch.rpm | cpio -i --make-directories)
     - export CXX_OVERRIDE="g++-5"
+    - export WORDSFILE_OVERRIDE=/tmp/usr/share/dict/words
 script: make build && (cd test/; make all && ./unittest)
 notifications:
 email:

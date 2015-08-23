@@ -100,7 +100,7 @@ void test_split2(const std::string &input, const delim_type &delim,
         ? libaan::split(input, delim)
         : libaan::split(input, delim);
 
-    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
+//    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
     EXPECT_EQ(result.size(), r.size());
     if(result.size() != r.size())
         return;
@@ -117,7 +117,7 @@ void test_split2_b(const std::string &input, const libaan::string_type &delim,
         ? libaan::split(input, delim)
         : libaan::split2(input, delim);
 
-    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
+//    if(result.size() != r.size()) for(const auto rr: r) std::cout << "\"" << (int)(std::string(rr)[0])<< "/l=" << rr.length() << "\", "; std::cout << "\n";
     EXPECT_EQ(result.size(), r.size());
     if(result.size() != r.size())
         return;
@@ -213,7 +213,7 @@ TEST(string_hh, stl_search_all) {
 
 /*
 TODO: sarr*::get_suffixes()
-// my benchmark programm:
+// my benchmark program:
 // suffix array for: "banana$"       6 5 3 1 0 4 2
 // suffix array for: "banana"        5 3 1 0 4 2
 // suffix array for: "mississippi$"  11 10 7 4 1 0 9 8 6 3 5 2

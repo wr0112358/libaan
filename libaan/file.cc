@@ -5,17 +5,14 @@
 #include <cstddef>
 #include <fstream>
 #include <iostream>
-#include <memory>
 
 #include <ext/stdio_filebuf.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-namespace {
-
 // copied from:
 // http://lists.grok.org.uk/pipermail/full-disclosure/2005-November/038295.html
-size_t dirent_buf_size(DIR *dirp)
+size_t libaan::dirent_buf_size(DIR *dirp)
 {
     long name_max;
 #if defined(HAVE_FPATHCONF) && defined(HAVE_DIRFD) && defined(_PC_NAME_MAX)
@@ -36,9 +33,6 @@ size_t dirent_buf_size(DIR *dirp)
 #endif
     return (size_t)offsetof(struct dirent, d_name) + name_max + 1;
 }
-
-}
-
 
 inline size_t libaan::get_file_length(std::ifstream & fp)
 {

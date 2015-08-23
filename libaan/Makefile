@@ -9,12 +9,13 @@ all: $(SO_REALNAME)# tmp
 crypto.o: crypto.cc crypto.hh
 crypto_file.o: crypto_file.cc crypto_file.hh
 debug.o: debug.cc debug.hh
+fd.o: fd.cc fd.hh
 file.o: file.cc file.hh
 string.o: string.cc string.hh
 terminal.o: terminal.cc terminal.hh
 x11.o: x11.cc x11.hh
 
-ALL_OBJS=crypto.o crypto_file.o debug.o file.o string.o terminal.o x11.o
+ALL_OBJS=crypto.o crypto_file.o debug.o fd.o file.o string.o terminal.o x11.o
 
 $(SO_REALNAME): $(ALL_OBJS)
 	$(CXX) $(LDFLAGS) -o $@ $^

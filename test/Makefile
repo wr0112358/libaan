@@ -6,7 +6,8 @@ LDFLAGS=-lssl -lcrypto -lX11
 all: build_gtest unittest
 
 CXXFLAGS+=-I$(PROJECT_ROOT)
-LDFLAGS=-lasan -Wl,-rpath ../libaan -L ../libaan -laan
+#LDFLAGS=-lasan -Wl,-rpath ../libaan -L ../libaan -laan
+LDFLAGS=-Wl,-rpath ../libaan -L ../libaan -laan
 
 algorithm_test.o: algorithm_test.cc $(PROJECT_ROOT)/libaan/algorithm.hh
 byte_test.o: byte_test.cc $(PROJECT_ROOT)/libaan/byte.hh

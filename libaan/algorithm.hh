@@ -93,10 +93,38 @@ inline bool contains_only(const std::string &c, const std::string &set)
     return c.find_first_not_of(set) == std::string::npos;
 }
 
-}
-
 template<typename T>
 const T& min(const T &a, const T &b, const T &c)
 { return std::min(std::min(a, b), c); }
+
+template<typename container_type>
+using value_t = typename container_type::value_type;
+
+template<typename container_type>
+value_t<container_type> mean(const container_type &v)
+{
+    if(v.empty())
+        return value_t<container_type>();
+    auto sum = std::accumulate(std::begin(v), std::end(v), value_t<container_type>());
+    return sum / v.size();
+}
+
+template<typename container_type>
+value_t<container_type> min(const container_type &v)
+{
+    return v.empty()
+        ? value_t<container_type>()
+        : *std::min_element(std::begin(v), std::end(v));
+}
+
+template<typename container_type>
+value_t<container_type> max(const container_type &v)
+{
+    return v.empty()
+        ? value_t<container_type>()
+        : *std::max_element(std::begin(v), std::end(v));
+}
+
+}
 
 #endif

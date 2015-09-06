@@ -41,10 +41,10 @@ inline uint64_t ntohll(uint64_t n)
 
 namespace libaan {
 
-inline std::size_t roundtonext8(std::size_t val) { return (val + 7u) & ~7u; }
-inline std::size_t roundtolast8(std::size_t val) { return val & ~7u; }
-inline std::size_t roundtonext16(std::size_t val) { return (val + 15u) & ~15u; }
-inline std::size_t roundtolast16(std::size_t val) { return val & ~15u; }
+inline std::size_t roundtonext8(std::size_t val) { return (val + 7ull) & ~7ull; }
+inline std::size_t roundtolast8(std::size_t val) { return val & ~7ull; }
+inline std::size_t roundtonext16(std::size_t val) { return (val + 15ull) & ~15ull; }
+inline std::size_t roundtolast16(std::size_t val) { return val & ~15ull; }
 
 
 template<size_t start, size_t end>

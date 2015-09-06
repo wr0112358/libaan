@@ -31,43 +31,10 @@ inline uint64_t mask(const size_t bit_nr)
 }
 
 /*
-operations for all bit_vector containers are specified as follows
+operations for all bit_vector containers:
 size() := size in bytes
 bits_total() := size() * 8
 */
-
-template<size_t bit_count>
-class bit_vector_ct {
-public:
-    void set(const size_t bit_idx)
-    {
-        const auto i = idx(bit_idx);
-        data[i.first] |= 1ULL << i.second;
-    }
-
-    void unset(const size_t bit_idx)
-    {
-        const auto i = idx(bit_idx);
-        data[i.first] &= ~(1ULL << i.second);
-    }
-
-    uint64_t get(const size_t bit_idx) const
-    {
-        const auto i = idx(bit_idx);
-        return data[i.first] & (1ULL << i.second);
-        //return data.at(i.first) & (1ULL << i.second);
-    }
-
-    size_t size() const { return data.size() * sizeof(uint64_t); }
-    size_t bits_total() const { return data.size() * sizeof(uint64_t) * 8; }
-    void set_all(bool set) { memset(&data[0], set ? 0xffffffffffffffff : 0, data.size() * sizeof(uint64_t)); }
-
-    const char *raw() const { return reinterpret_cast<char *>(&data[0]); }
-    size_t raw_size() const { return size(); }
-
-private:
-    std::array<uint64_t, u64_from_bitcount(bit_count)> data {};
-};
 
 class bit_vector {
 public:
@@ -161,7 +128,6 @@ public:
     const char *raw() const { return mapped_data; }
     size_t raw_size() const { return size(); }
 
-//    friend bool operator==(const bit_vector &lhs, const bit_vector &rhs);
     friend mapped_bit_vector &operator|=(mapped_bit_vector &lhs, const mapped_bit_vector &rhs);
 
 private:
@@ -182,89 +148,29 @@ inline mapped_bit_vector &operator|=(mapped_bit_vector &lhs,
     return lhs;
 }
 
-// clear all bits [msb, i]
-uint64_t clear_lsb_to_msb(uint64_t value, size_t i)
+// clear/set all bits from lsb/msb to offset
+uint64_t clear_lsb_to_msb(uint64_t value, size_t offset)
 {
-    const auto mask = (1ULL << i) - 1; // i=4 -> 10000, 10000 - 1 = 01111
-    return value & ~mask; // i=4, ~mask=1...10000
+    assert(offset < 64);
+    return offset == 63 ? 0 : value & ~((1ULL << (offset + 1)) - 1);
 }
 
-// clear all bits [i, lsb(0)]
-uint64_t clear_msb_to_lsb(uint64_t value, size_t i)
+uint64_t clear_msb_to_lsb(uint64_t value, size_t offset)
 {
-    const auto mask = ~((1ULL << (i+1)) - 1);
-    return value & ~mask;
+    assert(offset < 64);
+    return offset == 63 ? 0 : value & ~(0xffffffffffffffffull << (63 - offset));
 }
 
-uint64_t set_lsb_to_msb(uint64_t value, size_t i)
+uint64_t set_lsb_to_msb(uint64_t value, size_t offset)
 {
-    const auto mask = (1ULL << i) - 1; // i=4 -> 10000, 10000 - 1 = 01111
-    return value | mask; // i=4, ~mask=1...10000
+    assert(offset < 64);
+    return offset == 63 ? 0xffffffffffffffffull : value | ((1ULL << (offset + 1)) - 1);
 }
 
-uint64_t set_msb_to_lsb(uint64_t value, size_t i)
+uint64_t set_msb_to_lsb(uint64_t value, size_t offset)
 {
-    const auto mask = ~((1ULL << (i+1)) - 1);
-    return value | mask;
+    assert(offset < 64);
+    return offset == 63 ? 0xffffffffffffffffull : value | (0xffffffffffffffffull << (63 - offset));
 }
-
-#if 0
-const size_t NONE = std::numeric_limits<size_t>::max();
-
-template<typename bitvec_type)
-size_t find_next_set(const bitvec_type &bitvec, size_t bit_off = 0)
-{
-}
-
-template<typename bitvec_type)
-size_t find_next_not_set(const bitvec_type &bitvec, size_t bit_off = 0)
-{
-    find_next_not_set(bitvec.raw(), bitvec.raw_size(), bit_off);
-}
-
-size_t find_next_not_set(const char *data, size_t len, size_t bit_off = 0)
-{
-    assert(bit_off < 64);
-    if(bit_off == 0) {
-        const auto it = std::find_if_not(data, data + len, [](const char c) { return c != 0xff; });
-        if(it == data + len)
-            return NONE;
-    }
-
-    const uint64_t *ptr = reinterpret_cast<const uint64_t *>(bitvec.raw());
-    const size_t l = bitvec.raw_size();
-    for(size_t i = 0; i + sizeof(uint64_t) <= l; i += sizeof(uint64_t)) {
-        // set already visited bits
-        if(bit_off % 64 != 0) {
-            // set bit_off leading bits to 0
-            // then count leading 0-bits
-            // if(count > bit_off) return bit_off + 1
-            const auto x = bit_off ? set_lsb_to_msb(*(ptr + i), bit_off - 1) : *(ptr + i);
-            const auto count = count_trailing_0(x);
-            if(count == 64)
-                continue;
-            return count + 1
-
-        }
-            memmem();
-            return xyz;
-    }
-    return NONE;
-}
-
-template<typename bitvec_type, typename lambda_t>
-void bitvec_for_each(bool set, const bitvec_type &bitvec, const lambda_t &lambda)
-{
-    auto find_lambda = set ? find_next_set : find_next_not_set;
-    size_t bit_off = 0;
-    while(true) {
-        bit_off = find_lambda(bitvec, bit_off);
-        if(bit_off == NONE)
-            break;
-        lambda(bit_off);
-        bit_off++;
-    }
-}
-#endif
 
 }

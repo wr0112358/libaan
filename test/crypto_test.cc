@@ -44,7 +44,7 @@ TEST(crypto_hh, read_random_ascii_set) {
     std::string s;
     s.reserve(std::numeric_limits<char>::max());
     for(char c = 0; c < std::numeric_limits<char>::max(); c++)
-        s[c] = c;
+        s[static_cast<size_t>(c)] = c;
 
     for(auto count: { 0u, 1u, 10u, 4096u }) {
         for(std::string set: { std::string(""), std::string("a"),
@@ -67,7 +67,7 @@ TEST(crypto_hh, hmac) {
     std::string s;
     s.reserve(std::numeric_limits<char>::max());
     for(char c = 0; c < std::numeric_limits<char>::max(); c++)
-        s[c] = c;
+        s[static_cast<size_t>(c)] = c;
 
     for(auto count: { 0u, 1u, 10u, 769u, 4096u }) {
         for(std::string key: { std::string(""), std::string("a"),

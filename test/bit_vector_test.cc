@@ -71,3 +71,13 @@ TEST(bit_vector_hh, set_msb_to_lsb) {
     for(size_t i = 0; i < in_val.size(); i++)
         EXPECT_EQ(exp[i], libaan::set_msb_to_lsb(in_val[i], in_i[i]));
 }
+
+TEST(bit_vector_hh, bit_vector) {
+    libaan::bit_vector b63(63);
+    libaan::bit_vector b64(64);
+    libaan::bit_vector b1024(1024);
+    EXPECT_EQ(8, b63.size());
+    EXPECT_EQ(8, b64.size());
+    EXPECT_EQ(1024 / 8, b1024.size());
+
+}

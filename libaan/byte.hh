@@ -73,27 +73,31 @@ inline bool in_region(size_t val)
 template<typename value_type>
 inline size_t count_leading_0(value_type value)
 {
-    static_assert(sizeof(value_type) == 4, "not 32bit");
-    return value == 0 ? sizeof(value) * 8 : __builtin_clz(value);
+    static_assert(sizeof(value_type) == 4u, "not 32bit");
+    return value == 0u ? sizeof(value) * 8u
+        : static_cast<unsigned int>(__builtin_clz(value));
 }
 
 inline size_t count_leading_0(uint64_t value)
 {
-    return value == 0 ? sizeof(value) * 8
-        : ((value >> 32) == 0 ? (32 + __builtin_clz(value & 0xffffffffULL)) : 0);
+    return value == 0u ? sizeof(value) * 8u
+        : ((value >> 32u) == 0u
+           ? (32u + static_cast<unsigned int>(__builtin_clz(value & 0xffffffffULL))) : 0u);
 }
 
 template<typename value_type>
 inline size_t count_trailing_0(value_type value)
 {
-    static_assert(sizeof(value_type) == 4, "not 32bit");
-    return value == 0 ? sizeof(value) * 8 : __builtin_ctz(value);
+    static_assert(sizeof(value_type) == 4u, "not 32bit");
+    return value == 0u ? sizeof(value) * 8u : static_cast<unsigned int>(__builtin_ctz(value));
 }
 
 inline size_t count_trailing_0(uint64_t value)
 {
-    return value == 0 ? sizeof(value) * 8
-        : (((value & 0xffffffffULL) == 0) ? 32 + __builtin_ctz(value >> 32) : __builtin_ctz(value & 0xffffffffULL));
+    return value == 0 ? sizeof(value) * 8u
+        : (((value & 0xffffffffULL) == 0)
+           ? 32 + static_cast<unsigned int>(__builtin_ctz(value >> 32u))
+           : static_cast<unsigned int>(__builtin_ctz(value & 0xffffffffULL)));
 }
 
 // TODO: testing value for 0 is unnecessary since it would be all-1 after inverting
@@ -101,27 +105,31 @@ template<typename value_type>
 inline size_t count_leading_1(value_type value)
 {
     static_assert(sizeof(value_type) == 4, "not 32bit");
-    return value == 0 ? 0 : (~value == 0 ? 8 * sizeof(value_type) : __builtin_clz(~value));
+    return value == 0u ? 0u : (~value == 0u ? 8u * sizeof(value_type)
+                               : static_cast<unsigned int>(__builtin_clz(~value)));
 }
 
 inline size_t count_leading_1(uint64_t value)
 {
-    if(value == 0)
-        return 0;
+    if(value == 0u)
+        return 0u;
     else if(~value == 0ULL)
-        return 64;
+        return 64u;
 
     // __builtin_clz(0) results in undefined behaviour
-    const auto msb = (~value >> 32) == 0 ? 32 : __builtin_clz(~value >> 32);
-    const auto lsb = (~value & 0xffffffffUL) == 0 ? 32 : __builtin_clz(~value & 0xffffffffUL);
-    return msb == 32 ? 32 + lsb : msb;
+    const auto msb = (~value >> 32u) == 0u ? 32u
+        : static_cast<unsigned int>(__builtin_clz(~value >> 32u));
+    const auto lsb = (~value & 0xffffffffUL) == 0u ? 32u
+        : static_cast<unsigned int>(__builtin_clz(~value & 0xffffffffUL));
+    return msb == 32u ? 32u + lsb : msb;
 }
 
 template<typename value_type>
 inline size_t count_trailing_1(value_type value)
 {
     static_assert(sizeof(value_type) == 4, "not 32bit");
-    return value == 0 ? 0 : (~value == 0 ? 8 * sizeof(value_type) : __builtin_ctz(~value));
+    return value == 0 ? 0 : (~value == 0 ? 8u * sizeof(value_type)
+                             : static_cast<unsigned int>(__builtin_ctz(~value)));
 }
 
 inline size_t count_trailing_1(uint64_t value)
@@ -132,9 +140,11 @@ inline size_t count_trailing_1(uint64_t value)
         return 64;
 
     // __builtin_clz(0) results in undefined behaviour
-    const auto msb = (~value >> 32) == 0 ? 32 : __builtin_ctz(~value >> 32);
-    const auto lsb = (~value & 0xffffffffUL) == 0 ? 32 : __builtin_ctz(~value & 0xffffffffUL);
-    return lsb == 32 ? 32 + msb : lsb;
+    const auto msb = (~value >> 32u) == 0u ? 32u
+        : static_cast<unsigned int>(__builtin_ctz(~value >> 32u));
+    const auto lsb = (~value & 0xffffffffUL) == 0u ? 32u
+        : static_cast<unsigned int>(__builtin_ctz(~value & 0xffffffffUL));
+    return lsb == 32u ? 32u + msb : lsb;
 }
 
 /*

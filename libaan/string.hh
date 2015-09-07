@@ -38,7 +38,7 @@ private:
     friend bool operator==(const char *lhs, const string_type &rhs);
     friend bool operator==(const std::string &lhs, const string_type &rhs);
     friend std::vector<string_type> split(const string_type &input, const string_type &delim);
-    friend std::vector<string_type> split(const string_type &input, unsigned char delim);
+    friend std::vector<string_type> split(const string_type &input, char delim);
 
 private:
     const char *s;
@@ -50,7 +50,7 @@ bool operator==(const char *lhs, const string_type &rhs);
 bool operator==(const std::string &lhs, const string_type &rhs);
 
 std::vector<string_type> split(const string_type &input, const string_type &delim);
-std::vector<string_type> split(const string_type &input, unsigned char delim);
+std::vector<string_type> split(const string_type &input, char delim);
 
 std::vector<string_type> split2(const std::string &input, const std::string &delim);
 

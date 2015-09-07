@@ -69,7 +69,7 @@ public:
 
     size_t size() const { return buff.size() * sizeof(uint64_t); }
     size_t bits_total() const { return buff.size() * sizeof(uint64_t) * 8; }
-    void set_all(bool set) { memset(&buff[0], set ? 0xffffffffffffffff : 0, buff.size() * sizeof(uint64_t)); }
+    void set_all(bool set) { memset(&buff[0], set ? 0xffu : 0, buff.size() * sizeof(uint64_t)); }
 
     const std::vector<uint64_t> &data() const { return buff; }
     const char *raw() const { return reinterpret_cast<const char *>(&buff[0]); }

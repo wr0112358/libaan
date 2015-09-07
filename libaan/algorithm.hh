@@ -29,7 +29,7 @@ inline void bin_remove_leading_0_full_byte(std::string &str)
     const auto idx = str.find_first_not_of('0');
     if(idx == std::string::npos)
         return;
-    const auto round_down = idx & ~0x07;
+    const auto round_down = idx & ~0x07u;
     if(round_down)
         str.erase(0, round_down);
 }

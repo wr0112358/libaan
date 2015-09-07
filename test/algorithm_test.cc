@@ -14,8 +14,8 @@ TEST(algorithm_hh, bin_remove_leading_0) {
             std::make_tuple("00000000000000000abc000", "abc000", "0abc000") };
 
     for(const auto &t: ts) {
-        auto i1 { std::get<0>(t) };
-        auto i2 { std::get<0>(t) };
+        std::string i1 { std::get<0>(t) };
+        std::string i2 { std::get<0>(t) };
         libaan::bin_remove_leading_0(i1);
         libaan::bin_remove_leading_0_full_byte(i2);
         EXPECT_EQ(i1, std::get<1>(t));

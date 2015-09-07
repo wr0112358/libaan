@@ -96,7 +96,7 @@ std::vector<libaan::string_type> libaan::split(const string_type &input, const s
 }
 
 std::vector<libaan::string_type>
-libaan::split(const string_type &input, unsigned char delim)
+libaan::split(const string_type &input, char delim)
 {
     std::vector<string_type> ret;
     const char *ptr = input.s;

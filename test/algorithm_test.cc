@@ -78,3 +78,67 @@ TEST(algorithm_hh, all_eq) {
     EXPECT_FALSE(libaan::all_eq(s4));
     EXPECT_FALSE(libaan::all_eq2(s4));
 }
+
+TEST(algorithm_hh, prefix_suffix_search) {
+#define H1 "aabbb"
+#define H2 "aacccb"
+#define N1 "bb"
+#define N2 "cc"
+    EXPECT_EQ(libaan::ends_with_prefix(H1, sizeof(H1) - 1, N1, sizeof(N1) - 1), 0);
+    EXPECT_EQ(libaan::ends_with_prefix(H1, strlen(H1), N1, strlen(N1)), 0);
+    EXPECT_EQ(libaan::ends_with_prefix(H2, sizeof(H2) - 1, N1, sizeof(N1) - 1), 1);
+    EXPECT_EQ(libaan::ends_with_prefix(H2, sizeof(H2) - 1, N2, sizeof(N2) - 1), sizeof(N2) - 1);
+#undef H1
+#undef H2
+#undef N1
+#undef N2
+
+#define H3 "aabbccdd0000"
+#define N3 "000001"
+    EXPECT_TRUE(libaan::ends_with(H3, sizeof(H3) - 1, "0000", strlen("0000")));
+    EXPECT_TRUE(libaan::ends_with_prefix(H3, sizeof(H3) - 1, N3, sizeof(N3) - 1) == 2);
+#undef H3
+#undef N3
+
+#define H4 "aabbccdd000"
+#define N4 "000001"
+    EXPECT_EQ(libaan::ends_with_prefix(H4, sizeof(H4) - 1, N4, sizeof(N4) - 1), 3);
+    EXPECT_TRUE(libaan::starts_with(H4, sizeof(H4) - 1, "aa", 2));
+    EXPECT_FALSE(libaan::starts_with(H4, sizeof(H4) - 1, "aaa", 3));
+    EXPECT_TRUE(libaan::starts_with(H4, sizeof(H4) - 1, "aaa", 2));
+#undef H4
+#undef N4
+
+#define H5 "0001abcdef"
+#define N5 "000001"
+    EXPECT_EQ(libaan::starts_with_suffix(H5, sizeof(H5) - 1, N5, sizeof(N5) - 1), 2);
+#undef H5
+#undef N5
+
+#define H6A "abdefg00"
+#define H6B "0001abcdef"
+#define N6 "000001"
+    EXPECT_EQ(libaan::ends_with_prefix(H6A, sizeof(H6A) - 1, N6, sizeof(N6) - 1), 4);
+    EXPECT_EQ(libaan::starts_with_suffix(H6B, sizeof(H6B) - 1, N6, sizeof(N6) - 1), 2);
+#undef H6A
+#undef H6B
+#undef N6
+
+#define H7A "abdefg000"
+#define H7B "001abcdef"
+#define N7 "000001"
+    EXPECT_EQ(libaan::ends_with_prefix(H7A, sizeof(H7A) - 1, N7, sizeof(N7) - 1), 3);
+    EXPECT_EQ(libaan::starts_with_suffix(H7B, sizeof(H7B) - 1, N7, sizeof(N7) - 1), 3);
+#undef H7A
+#undef H7B
+#undef N7
+
+#define H8A "abdefg0000"
+#define H8B "001abcdef"
+#define N8 "000001"
+    EXPECT_EQ(libaan::ends_with_prefix(H8A, sizeof(H8A) - 1, N8, sizeof(N8) - 1), 2);
+    EXPECT_EQ(libaan::starts_with_suffix(H8B, sizeof(H8B) - 1, N8, sizeof(N8) - 1), 3);
+#undef H8A
+#undef H8B
+#undef N8
+}

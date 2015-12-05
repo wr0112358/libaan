@@ -125,6 +125,57 @@ value_t<container_type> max(const container_type &v)
         : *std::max_element(std::begin(v), std::end(v));
 }
 
+inline bool ends_with(const void *haystack, size_t haystack_len,
+               const void *needle, size_t needle_len)
+{
+    return haystack_len >= needle_len
+        && memcmp(reinterpret_cast<const char *>(haystack) + haystack_len - needle_len, needle, needle_len) == 0;
+}
+
+// returns 0 if haystack contains the complete needle
+// returns 1 if haystack contains the complete needle - 1
+// returns 2 if haystack contains the complete needle - 2
+// ...
+// returns needle_len if needle is not found
+inline size_t ends_with_prefix(const void *haystack, size_t haystack_len,
+                        const void *needle, size_t needle_len)
+{
+    for(size_t i = 0; i < needle_len; i++) {
+        //std::cout << "prefix: " << std::string((char *)needle, needle_len - i) << "\n";
+        //std::cout << "hay: " << std::string((char *)haystack, haystack_len) << "\n";
+        if(ends_with(haystack, haystack_len,
+                     needle, needle_len - i))
+            return i;
+    }
+    return needle_len;
+}
+
+inline bool starts_with(const void *haystack, size_t haystack_len,
+                 const void *needle, size_t needle_len)
+{
+    return haystack_len >= needle_len
+        && memcmp(haystack, needle, needle_len) == 0;
+}
+
+// returns 0 if haystack contains the complete needle
+// returns 1 if haystack contains the complete needle - 1
+// returns 2 if haystack contains the complete needle - 2
+// ...
+// returns needle_len if needle is not found
+inline size_t starts_with_suffix(const void *haystack, size_t haystack_len,
+                          const void *needle, size_t needle_len)
+{
+    for(size_t i = 0; i < needle_len; i++) {
+        //std::cout << "suffix: " << std::string((char *)needle + i, needle_len - i) << "\n";
+        //std::cout << "hay: " << std::string((char *)haystack, haystack_len) << "\n";
+        if(starts_with(haystack, haystack_len,
+                       reinterpret_cast<const char *>(needle) + i,
+                       needle_len - i))
+            return i;
+    }
+    return needle_len;
+}
+
 }
 
 #endif

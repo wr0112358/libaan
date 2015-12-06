@@ -6,6 +6,7 @@ LDFLAGS+=-shared -Wl,-soname,$(SONAME) -lssl -lcrypto -lX11
 
 all: $(SO_REALNAME)# tmp
 
+base64.o: base64.cc base64.hh
 crypto.o: crypto.cc crypto.hh
 crypto_file.o: crypto_file.cc crypto_file.hh
 debug.o: debug.cc debug.hh

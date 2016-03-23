@@ -9,6 +9,8 @@
 
 namespace libaan {
 
+bool real_path(const std::string &path, std::string &result);
+
 size_t get_file_length(std::ifstream &fp);
 size_t read_file(const char *file_name, std::string &buff,
                size_t optional_max_buffer_size = 0);

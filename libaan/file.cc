@@ -1,5 +1,6 @@
 #include "file.hh"
 
+#include <climits>
 #include <cstdint>
 #include <cstdio>
 #include <cstddef>
@@ -9,6 +10,18 @@
 #include <ext/stdio_filebuf.h>
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <libaan/debug.hh>
+
+bool libaan::real_path(const std::string &path, std::string &result)
+{
+    std::string tmp(PATH_MAX, '\0');
+    if(realpath(path.c_str(), &tmp[0]) == NULL)
+        return false;
+    libaan::strip(tmp);
+    std::swap(result, tmp);
+    return true;
+}
 
 // copied from:
 // http://lists.grok.org.uk/pipermail/full-disclosure/2005-November/038295.html

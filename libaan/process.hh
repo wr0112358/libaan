@@ -22,23 +22,45 @@ namespace libaan {
         printf("lambda_in_child -> %s\n", r ? "true" : "false");
     }
 */
-template <typename ...arg_types, typename lambda_type>
-bool sub_do(lambda_type&& lambda, arg_types&& ... args)
+template <typename ...child_arg_types, typename child_lambda_type, typename parent_lambda_type>
+bool sub_do(parent_lambda_type&& parent_lambda,
+            child_lambda_type&& child_lambda,
+            child_arg_types&& ... child_args)
 {
     errno = 0;
     const auto pid = fork();
+    //printf("sub_do fork -> %d\n", pid);
     switch(pid) {
     case 0:
-        exit(lambda(std::forward<arg_types>(args)...)
+        //printf("XX: start child_lambda\n");
+        exit(child_lambda(std::forward<child_arg_types>(child_args)...)
              ? EXIT_SUCCESS : EXIT_FAILURE);
+        //printf("XX: DONE child_lambda\n");
+        assert(false);
     case -1:
+        //printf("XX: ERROR\n");
         return false;
     default:
-        int status;
-        if(waitpid(pid,&status,0) == -1)
-            return false;
-        return WIFEXITED(status) ? WEXITSTATUS(status) == EXIT_SUCCESS : false;
+        //printf("XX: START parent_lambda %d for child %d\n", getpid(), pid);
+        return parent_lambda(pid);
     }
+}
+
+std::pair<bool, bool> try_reap(pid_t pid)
+{
+    while(true) {
+        int status;
+        const auto p = waitpid(pid, &status, WNOHANG);
+        // if(p == -1 && errno == EINTR) continue; //not for WNOHANG
+        //printf("waitpid(%d) -> %d\n", pid, p);
+        if(p == 0)
+            return std::make_pair(false, false);
+        else if(p == -1)
+            return std::make_pair(true, false);
+        else if(p == pid)
+            return std::make_pair(true, WIFEXITED(status) ? WEXITSTATUS(status) == EXIT_SUCCESS : false);
+    }
+    return std::make_pair(false, false);
 }
 
 }

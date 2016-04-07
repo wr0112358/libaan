@@ -18,8 +18,10 @@ CXXFLAGS=-std=c++1y -Wall -Werror $(WARN_MORE) # $(ASAN_CXXFLAGS)
 
 ifeq ($(CXX_OVERRIDE),)
     CXX=g++
+    CC=$(CXX)
 else
     CXX=$(CXX_OVERRIDE)
+    CC=$(CXX)
 endif
 
 ifeq ($(WORDSFILE_OVERRIDE),)
@@ -32,3 +34,15 @@ endif
 PROJECT_ROOT:=$(dir $(lastword $(MAKEFILE_LIST)))
 # or absolute paths
 # PROJECT_ROOT := $(dir $(CURDIR)/$(word $(words $(MAKEFILE_LIST)),$(MAKEFILE_LIST)))
+
+ifneq ("$(wildcard /usr/lib64/)","")
+     INSTALL_PATH=/usr/lib64
+else ifneq ("$(wildcard /usr/lib/x86_64-linux-gnu/)","")
+     INSTALL_PATH=/usr/lib/x86_64-linux-gnu
+else
+     INSTALL_PATH=/usr/lib
+endif
+
+
+export CXX
+export CC

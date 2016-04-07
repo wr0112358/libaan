@@ -19,7 +19,7 @@ x11.o: x11.cc x11.hh
 ALL_OBJS=crypto.o crypto_file.o debug.o fd.o file.o string.o terminal.o x11.o
 
 $(SO_REALNAME): $(ALL_OBJS)
-	$(CXX) $(LDFLAGS) -o $@ $^
+	$(CC) $(LDFLAGS) -o $@ $^
 	ln -sf $(SO_REALNAME) $(SONAME)
 	ln -sf $(SONAME) $(SO_LINKERNAME) 
 
@@ -31,4 +31,4 @@ clean:
 
 tt.o: tt.cc
 tt: tt.o
-	$(CXX) -o $@ $^
+
